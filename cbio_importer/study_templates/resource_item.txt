@@ -1,0 +1,3 @@
+cancer_study_identifier: {study_id}
+resource_type: {type}
+data_filename: {filename}

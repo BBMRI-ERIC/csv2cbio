@@ -1,0 +1,120 @@
+# Note that ALL PATHS ARE RELATIVE to constants defined within the docker compose!
+
+output_folder: output
+
+# Study Meta
+study_id: test_cancer_study
+cancer_type: colorectal
+study_name: My Colorectal Cancer Study
+study_description: Test Cancer Study From The Demo
+# delimiter: "\t"  # your csv delimiter
+# group: SOME_GROUP_NAME  # PUBLIC group is used for authorization bypassing
+
+# Cancer types definition
+cancer_types:
+  gastrointestinal:
+    name: Gastrointestinal Cancer
+    ui_color: lightcoral  # color name to visualize
+    parent: null  # can be ommited, no parent cancer type
+  colorectal:
+    name: Colorectal Cancer
+    ui_color: lightcoral  # color name to visualize
+    parent: gastrointestinal  # child of the above
+
+
+# Patient Dataset
+patients:
+  file: "data.csv"
+  # accept only x and y as some_measurement (gets applied before group)
+  # for the sake of clearness, we repeat filter in each configuration, however, yaml supports _anchors_
+  filter:
+    - source_id: some_measurement 
+      regex: "[xyz]"
+  # have patient only once per record
+  group:
+    by: ["patient"]
+  columns:
+    - id: PATIENT_ID
+      source_id: patient # present since group_by selector
+      name: Patient ID
+      description: ID of the patient
+      data_type: STRING
+
+
+samples:
+  file: "data.csv"
+  # consistency
+  filter:
+    - source_id: some_measurement
+      regex: "[xyz]"
+  # note that if the file contained multiple lines per sample ID, we need to use grouping!
+  join:
+    - file: additional_data.csv
+      how: "left" # do not lose the samples, additional data is sparse
+      lsuffix: "_x" # used on duplicated column names
+      rsuffix: "_y"
+      left_on: "sample" # the aggregated file
+      right_on: "sample_id" # the new file
+  columns:
+    - id: SAMPLE_ID
+      source_id: sample
+      name: Sample ID
+      description: ID of the sample
+      data_type: STRING
+    - id: PATIENT_ID
+      source_id: patient
+      name: Patient ID
+      description: ID of the patient
+      data_type: STRING
+    - id: measurement # will be for us converted to capital case
+      source_id: some_measurement # no change in name
+      name: Some Measurement
+      description: etc
+      data_type: STRING
+    - id: other_measurement # will be for us converted to capital case
+      source_id: other_file_measurement # comes from different file YAY
+      name: Some Other Measurement
+      description: etc2
+      data_type: STRING
+
+# Resource use arbitrary, non-reserved keys.
+my_custom_resource:
+  file: "data.csv"
+  # Resouce is recognized by the presence of resource:
+  resource:
+    id: MY_RESOURCE_ID  
+    name: My Awesome Resource
+    description: Some resource description.
+    resource_type: SAMPLE # one of SAMPLE, PATIENT or STUDY.
+    open_by_default: false
+  # consistency
+  filter:
+    - source_id: some_measurement 
+      regex: "[xyz]"
+  group:
+    by: ["patient"]
+    # we need to keep slide values per patient - how we aggregate slides?
+    aggregate:
+    - id: wsi_slides_for_viewer  # rename for showcasing purposes
+      source_id: wsi_slide
+      function:
+        name: concat_paths
+        prefix_remove: /data  # our server has fake root at /data and sees files relative to it
+  # "PATIENT" requires ["PATIENT_ID", "RESOURCE_ID", "URL"], the tool will tell you :)
+  columns:
+    - id: PATIENT_ID
+      source_id: patient # present since group_by selector
+      name: Patient ID
+      description: ID of the patient
+      data_type: STRING
+    - id: RESOURCE_ID
+      data_type: STRING
+      value: MY_RESOURCE_ID # a constant
+    - id: URL
+      source_id: wsi_slides_for_viewer  # respect wsi_slide -> wsi_slides_for_viewer mapping change in aggregation
+      data_type: STRING
+      function:
+        name: template_string
+        string: http://{server}?slides={value}
+        template_dict: 
+          server: url.to/wsi-service

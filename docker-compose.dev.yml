@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  cbio_importer:
+    build:
+      context: .
+      target: cbio_importer
+    command:
+      - sleep
+      - infinity
+    environment:
+      CBIO_DB_USERNAME: ${CBIO_DB_USERNAME}
+      CBIO_DB_PASSWORD: ${CBIO_DB_PASSWORD}
+      CBIO_DB_URL: ${CBIO_DB_URL}
+      CBIO_FUNCTIONS: /functions.py
+      CBIO_CSV_PATH_PREFIX: /data/
+      CBIO_OUTPUT_PATH_PREFIX: /output/
+    volumes:
+      - ./cbio_importer:/cbio_importer/cbio_importer
+      - ${CBIO_COMPOSE_CSV_DIR:-.}:/data
+      - ${CBIO_COMPOSE_OUT_DIR:-./example}:/output
+      - ${CBIO_COMPOSE_STUDY_DEF:-./example/study.yaml}:/study.yml
+      - ${CBIO_COMPOSE_FUNCTIONS_DEF:-./example/functions.py}:/functions.py
+    networks:
+      - __cbio_net__
+
+networks:
+  __cbio_net__:
+    name: ${CBIO_COMPOSE_NETWORK}
+    external: true

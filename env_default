@@ -1,0 +1,11 @@
+CBIO_DB_USERNAME=cbio_user
+CBIO_DB_PASSWORD=somepassword
+CBIO_DB_URL=jdbc:mysql://cbioportal-database:3306/cbioportal?useSSL=false
+
+# Compose Setup: Network to connect to (usually contains a folder name prefix, see: docker network ls)
+CBIO_COMPOSE_NETWORK=cbio-net
+
+# Compose Setup: Files
+CBIO_COMPOSE_CSV_DIR=
+CBIO_COMPOSE_FUNCTIONS_DEF=
+CBIO_COMPOSE_STUDY_DEF=

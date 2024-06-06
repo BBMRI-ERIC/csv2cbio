@@ -1,0 +1,157 @@
+output_folder:
+
+# Study Meta
+study_id:
+cancer_type: colorectal
+study_name:
+study_description:
+# delimiter: "\t"  # your csv delimiter
+# group: SOME_GROUP_NAME  # PUBLIC group is used for authorization bypassing
+
+# Cancer types definition
+cancer_types:
+  gastrointestinal:
+    name: Gastrointestinal Cancer
+    ui_color: lightcoral  # color name to visualize
+    parent: null  # can be ommited, no parent cancer type
+  colorectal:
+    name: Colorectal Cancer
+    ui_color: lightcoral  # color name to visualize
+    parent: gastrointestinal  # child of the above
+
+
+# Patient Dataset
+patients:
+    file: "path/to/file"
+    columns:
+      - id: PATIENT_ID
+        # source_id:                       # optional id from the source csv if input ID != output ID name
+        name: Patient ID
+        description: ID of the patient
+        data_type: STRING                  # one of STRING, NUMBER or BOOLEAN.
+        # priority: 1                      # optional
+        # value:                           # optional constant value to assign
+
+samples:
+    file: "path/to/file"
+    columns: 
+    # ..etc. follow the same as above
+    
+# Special column IDs you can use for samples:
+# CANCER_TYPE: Overrides study wide cancer type
+# CANCER_TYPE_DETAILED
+# KNOWN_MOLECULAR_CLASSIFIER
+# GLEASON_SCORE: Radical prostatectomy Gleason score for prostate cancer
+# HISTOLOGY
+# TUMOR_STAGE_2009
+# TUMOR_GRADE
+# ETS_RAF_SPINK1_STATUS
+# TMPRSS2_ERG_FUSION_STATUS
+# ERG_FUSION_ACGH
+# SERUM_PSA
+# DRIVER_MUTATIONS
+
+# Resource use arbitrary, non-reserved keys.
+my_custom_resource:
+    file: "path/to/file"
+    resource:                          # Resource recognized by this key, note it is object not an array! 
+      id: MY_RESOURCE_ID  
+      name: My Awesome Resource
+      description: Some resource description.
+      resource_type: SAMPLE            # one of SAMPLE, PATIENT or STUDY.
+      open_by_default: false           #this property supported only here
+      # priority: 1
+    columns:
+      - # as usual, required columns are: resource_type: [required]:
+        #     "SAMPLE": ["PATIENT_ID", "SAMPLE_ID", "RESOURCE_ID", "URL"],
+        #     "PATIENT": ["PATIENT_ID", "RESOURCE_ID", "URL"],
+        #     "STUDY": ["RESOURCE_ID", "URL"]
+
+
+
+# You can provide a function and its arguments to derive the
+# value you need:
+#
+  - id: CBIO_COLUMN
+    data_type: STRING
+    # value: "constant"  # if value is specified, the function is passed a constant, otherwise it is passed a cell value
+    function:
+        name: python.module.path.function_name
+        argA: valueA
+        argB: valueB
+
+# Note that some functions globally available can be specified wihtout the prefix. An easy way
+# of using a custom function is to define python file with custom logics.
+# ALL FUNCTIONS ARE PASSED AS THE FIRST ARGUMENT EITHER A CONSTANT OR A CELL
+#
+# def my_fn_name(value, argA, argB):
+#    return "x"
+#
+# Then, simply say name: my_fn_name. The location of the functions file can be provided by
+# ENV or program args: CBIO_FUNCTIONS: /path/to/fun.py
+
+
+
+
+# Each SOURCE DEFINITION (e.g. file: selector is present supports the following:)
+# For filtering out rows, you can specify filter option:
+
+patients:
+  file: ...
+  filter:
+    - source_id: my_column_to_filter_by 
+      # AND one of the below:
+      one_of: ['val1', 'val2']                # matches selected value set
+      #or: regex: ""                          # matches a regex
+      #or: operator: 
+      #  arg: x
+      #  command: "<" "<=" "==" "=>" ">" "!=" # applies the operator such that [value] <command> x
+
+
+# To agregate rows, you have to (as in SQL) provide a list of columns to group by, and
+# a grouping logics for each column, else the the column will not be available in the
+# later queries. You can use functions & templating as usual. In this case, first
+# argument is NOT a value, but ARRAY of values that need to be grouped 
+# (all values of the particular column that belong to the new group).
+# With grouping, pands buildin function names are also supported - e.g. you can say 'sum'
+# without defining it.
+
+patients:
+  file: ...
+    group:
+      by: ["col1", "col2"]
+      aggregate:
+      - id: <output name>
+        source_id: <optional input name if it differs>
+        value: <optional constant value>
+        # or function:
+        #   name: ...
+        #   custom_arg: x
+
+# CAVEAT: group removes any columns that are not specified in 'by' or the 
+# aggregation logics is defined in aggregate. Furthermore, when you use different
+# <id> and <source_id>, the output column name changes to <id>.
+#
+# In case you have multiple CSVs you need to join, you can do:
+
+patients:
+  file: ...
+  join_last: true                          #optional, default false
+  join:
+     - file: /path/to/file.csv
+       how: "join"                         #optional, {‘left’, ‘right’, ‘outer’, ‘inner’, ‘cross’}
+       lsuffix: "x_"                       #optional
+       rsuffix: "y_"                       #optional
+       left_on: "col1"  # or array
+       right_on: "colA"  # or array
+
+# The appended file is always on the right. You can repeat the process with multiple joins, 
+# just keep in mind that joins can change column names: the output data column names must match
+# to the type definitions.
+
+# EACH of these can be used multiple times. You can filter using multiple rules, 
+# join multiple tables and define grouping logics for multiple columns.
+
+
+
+
