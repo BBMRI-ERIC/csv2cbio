@@ -4,7 +4,7 @@ from importlib import import_module
 import random
 
 import pandas as pd
-
+import numpy as np
 from ._singletons import FunctionDefinitionFile, AbsPath
 
 abspath = AbsPath().path
@@ -289,13 +289,35 @@ class CbioCSVWriter:
             raise ValueError(f"Invalid function provided: {fnpath.rsplit('.', maxsplit=1)}") from e
 
     def _get_value(self, item, key, value):
-        function = item.get("function", None)
+        function = self._option("function", source=item, require=False, assert_type=dict)
         fn = self._read_func(function["name"]) if function is not None else None
-        if fn is None:
-            return value
-        args = {**function}
-        del args["name"]
-        return fn(value, **args)
+        if fn is not None:
+            args = {**function}
+            del args["name"]
+            value = fn(value, **args)
+
+        if pd.isna(value):
+            return ""
+
+        conversion = self._option("convert", source=item, require=False, assert_type=str)
+        if conversion:
+            value = self._convert_value(value, conversion)
+        return value
+
+    def _convert_value(self, value, to_type):
+        type_map = {
+            'int': int,
+            'float': float,
+            'str': str,
+            'bool': bool,
+            'datetime': pd.to_datetime
+        }
+        if to_type in type_map:
+            try:
+                return type_map[to_type](value)
+            except ValueError:
+                raise ValueError(f"Could not convert '{value}' to {to_type}!")
+        raise ValueError(f"Unsupported type: {to_type}")
 
     def write_data(self, output):
         self._require_init()
@@ -308,7 +330,7 @@ class CbioCSVWriter:
         Could not find these columns: {header_diff} \n\
         Existing columns: {header}"
 
-        self.input = self.input.fillna('')
+        self.input = self.input.replace({None: np.nan})
 
         for col in self.required_colmns:
             require_header(self.required_colmns, col, 2)

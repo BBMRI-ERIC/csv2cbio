@@ -3,8 +3,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Prague
 RUN apt-get update \
     && apt-get install --no-install-recommends --fix-missing -y \
-    python3-venv python3-pip python3-requests python3-packaging git curl nano jq build-essential apt-transport-https \
-    ca-certificates maven openjdk-21-jdk wget
+    python3-dev python3-venv python3-pip python3-requests python3-packaging git curl nano jq build-essential apt-transport-https \
+    ca-certificates maven openjdk-21-jdk wget default-libmysqlclient-dev pkg-config
 ENV PATH /root/.local/bin:/root/.poetry/bin:${PATH}
 RUN mkdir -p /root/.local/bin \
     && ln -s $(which python3) /root/.local/bin/python \

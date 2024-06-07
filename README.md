@@ -20,6 +20,16 @@ modify it as needed, and run
 docker compose up
 `````
 
+Example study generation from the host machine:
+`````bash
+poetry run python -m cbio_importer \
+  --csv_path_prefix=example \
+  --functions=example/functions.py \
+  --output_path_prefix=example/output \
+  example/study.yaml
+`````
+
+
 # Features:
 Supported cbioportal entities:
  - study

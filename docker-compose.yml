@@ -19,6 +19,9 @@ services:
       CBIO_FUNCTIONS: /functions.py
       CBIO_CSV_PATH_PREFIX: /data/
       CBIO_OUTPUT_PATH_PREFIX: /output/
+      CBIO_URL: ${CBIO_URL}
+      CBIO_DO_IMPORT: ${CBIO_DO_IMPORT}
+      CBIO_AUTH_TOKEN: ${CBIO_AUTH_TOKEN}
     volumes:
       - ${CBIO_COMPOSE_CSV_DIR:-.}:/data
       - ${CBIO_COMPOSE_OUT_DIR:-./example}:/output

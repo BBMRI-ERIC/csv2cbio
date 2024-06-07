@@ -1,11 +1,24 @@
+### Note ###
+# If you are using the tool from your host machine, provide URLs to the cbioportal
+# as seen from your host machine (localhost, DNS, IP...)
+# If you run the container job, provide urls by service names, e.g. (defaults to the cbio docker repo):
+# db: jdbc:mysql://cbioportal-database:3306
+# page: http://cbioportal:8080
+
+
 CBIO_DB_USERNAME=cbio_user
 CBIO_DB_PASSWORD=somepassword
 CBIO_DB_URL=jdbc:mysql://cbioportal-database:3306/cbioportal?useSSL=false
 
 # Compose Setup: Network to connect to (usually contains a folder name prefix, see: docker network ls)
-CBIO_COMPOSE_NETWORK=cbio-net
+CBIO_COMPOSE_NETWORK=cbioportal-docker-compose_cbio-net
 
 # Compose Setup: Files
 CBIO_COMPOSE_CSV_DIR=
 CBIO_COMPOSE_FUNCTIONS_DEF=
 CBIO_COMPOSE_STUDY_DEF=
+
+# Importing & validating
+CBIO_DO_IMPORT=False
+CBIO_URL=http://cbioportal:8080
+CBIO_AUTH_TOKEN=
