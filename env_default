@@ -1,24 +1,25 @@
-### Note ###
-# If you are using the tool from your host machine, provide URLs to the cbioportal
-# as seen from your host machine (localhost, DNS, IP...)
-# If you run the container job, provide urls by service names, e.g. (defaults to the cbio docker repo):
-# db: jdbc:mysql://cbioportal-database:3306
-# page: http://cbioportal:8080
-
-
-CBIO_DB_USERNAME=cbio_user
-CBIO_DB_PASSWORD=somepassword
-CBIO_DB_URL=jdbc:mysql://cbioportal-database:3306/cbioportal?useSSL=false
-
-# Compose Setup: Network to connect to (usually contains a folder name prefix, see: docker network ls)
-CBIO_COMPOSE_NETWORK=cbioportal-docker-compose_cbio-net
-
-# Compose Setup: Files
+# Compose Setup: Files: Where are csv files located? Where we define functions and study.yaml (or arbitrary name)?
 CBIO_COMPOSE_CSV_DIR=
 CBIO_COMPOSE_FUNCTIONS_DEF=
 CBIO_COMPOSE_STUDY_DEF=
 
-# Importing & validating
+# In case you want/need to define relative paths in study.yaml, specify the relative root here:
+CBIO_CSV_PATH_PREFIX=
+CBIO_OUTPUT_PATH_PREFIX=
+
+
+#############################################################
+# Advanced: Validation + Importing (docker usage required)  #
+#############################################################
+# Compose Setup: Network to connect to (usually contains a folder name prefix, see: docker network ls)
+CBIO_COMPOSE_NETWORK=cbioportal-core_cbio-net
+
+# Cbio database access for importing (urls as seen from the cbio-net)
+CBIO_DB_USERNAME=cbio_user
+CBIO_DB_PASSWORD=somepassword
+CBIO_DB_URL=jdbc:mysql://cbioportal-database:3306/cbioportal?useSSL=false
+
+# Cbio importing & validation configuration
 CBIO_DO_IMPORT=False
-CBIO_URL=http://cbioportal:8080
-CBIO_AUTH_TOKEN=
+CBIO_URL=http://cbioportal:8080  # how docker in the cbio network sees
+CBIO_AUTH_TOKEN=  # provide a 'Bearer' token if you use auth version

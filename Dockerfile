@@ -16,12 +16,15 @@ ENV PIP_CACHE_DIR=/cache/pip
 FROM build_image as cbio_importer
 
 ENV PORTAL_HOME=/cbioportal-core
-RUN git clone https://github.com/cBioPortal/cbioportal-core.git "${PORTAL_HOME}" \
-    && cd "${PORTAL_HOME}" \
+WORKDIR /cbioportal-core
+RUN git clone https://github.com/cBioPortal/cbioportal-core.git . \
     && mvn -DskipTests clean install
+
+COPY bioportal_validation_auth.py scripts/bioportal_validation_auth.py
 
 COPY . /cbio_importer
 WORKDIR /cbio_importer
-RUN poetry install && poetry build
+RUN chmod +x /cbio_importer/cbio_importer/init.sh && poetry install && poetry build
+
 CMD ["bash"]
 ENTRYPOINT ["/cbio_importer/cbio_importer/init.sh"]
