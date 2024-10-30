@@ -35,11 +35,21 @@ patients:
   # have patient only once per record
   group:
     by: ["patient"]
+    aggregate:
+      - id: patient_name_first_occur
+        source_id: patient_name
+        function:
+          name: select_first  # take first entry
   columns:
     - id: PATIENT_ID
       source_id: patient # present since group_by selector
       name: Patient ID
       description: ID of the patient
+      data_type: STRING
+    - id: PATIENT_DISPLAY_NAME
+      name: Patient ID
+      source_id: patient_name_first_occur
+      description: Patient Name
       data_type: STRING
 
 
@@ -88,7 +98,7 @@ my_custom_resource:
     id: MY_RESOURCE_ID  
     name: My Awesome Resource
     description: Some resource description.
-    resource_type: SAMPLE # one of SAMPLE, PATIENT or STUDY.
+    resource_type: PATIENT # one of SAMPLE, PATIENT or STUDY.
     open_by_default: false
   # consistency
   filter:

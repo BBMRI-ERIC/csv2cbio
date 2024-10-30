@@ -1,6 +1,6 @@
-type_of_cancer: {cancer_type}
-cancer_study_identifier: {study_id}
-name: {study_name}
-description: {study_description}
-add_global_case_list: true
-groups: {group}
+type_of_cancer:	{cancer_type}
+cancer_study_identifier:	{study_id}
+name:	{study_name}
+description:	{study_description}
+add_global_case_list:	true
+groups:	{group}

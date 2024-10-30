@@ -77,12 +77,12 @@ class CbioCSVWriter:
         self.input_delimiter = '\t'
         self.input = None
         self.config = None
-        self.required_cols = []
+        self.guard_columns = []
         self.required_value_map = {}
         self.fn_module = None
 
     def with_required_columns(self, *columns):
-        self.required_cols = self.required_cols.extend(columns)
+        self.guard_columns.extend(columns)
         return self
 
     def with_input(self, inputs, options):
@@ -104,7 +104,7 @@ class CbioCSVWriter:
         if isinstance(inputs, str):
             inputs = f"{self.input_prefix}{inputs}"
             if not os.path.isfile(inputs):
-                raise ValueError(f"Input file {inputs} does not exist!")
+                raise ValueError(f"Input file {self.input_prefix}{inputs} does not exist!")
         self.input = pd.read_csv(inputs, delimiter=self.input_delimiter)
         return self
 
@@ -234,22 +234,31 @@ class CbioCSVWriter:
 
     def write_comment_ids(self, output):
         self._require_init()
-        print("#", end=' ', file=output)
-        print(*[item["name"] for item in self.config["columns"]], sep='\t', file=output)
+        print("#", end='', file=output)
+        try:
+            print(*[item["name"] for item in self.config["columns"]], sep='\t', file=output)
+        except KeyError as e:
+            raise ValueError(f"Could not find 'name' property for {get_caller(2)} entries: check your YAML!")
 
     def write_comment_descriptions(self, output):
         self._require_init()
-        print("#", end=' ', file=output)
-        print(*[item["description"] for item in self.config["columns"]], sep='\t', file=output)
+        print("#", end='', file=output)
+        try:
+            print(*[item["description"] for item in self.config["columns"]], sep='\t', file=output)
+        except KeyError as e:
+            raise ValueError(f"Could not find 'description' property for {get_caller(2)} entries: check your YAML!")
 
     def write_comment_data_types(self, output):
         self._require_init()
-        print("#", end=' ', file=output)
-        print(*[self._write_type(item["data_type"]) for item in self.config["columns"]], sep='\t', file=output)
+        print("#", end='', file=output)
+        try:
+            print(*[self._write_type(item["data_type"]) for item in self.config["columns"]], sep='\t', file=output)
+        except KeyError as e:
+            raise ValueError(f"Could not find 'data_type' property for {get_caller(2)} entries: check your YAML!")
 
     def write_comment_priority(self, output):
         self._require_init()
-        print("#", end=' ', file=output)
+        print("#", end='', file=output)
         print(*[item.get("priority", "1") for item in self.config["columns"]], sep='\t', file=output)
 
     def write_header(self, output):
@@ -332,7 +341,7 @@ class CbioCSVWriter:
 
         self.input = self.input.replace({None: np.nan})
 
-        for col in self.required_colmns:
+        for col in self.guard_columns:
             require_header(self.required_colmns, col, 2)
 
         constant_values = [self._get_constant(item) for item in self.config["columns"] if "value" in item]
@@ -354,10 +363,14 @@ class CbioCSVWriter:
 def require_header(llist, name, caller_depth=1):
     if not name in llist:
         # Parse problem name from the caller script name: sample.py --> Sample
-        import inspect
-        import pathlib
-        frame = inspect.stack()[caller_depth]
-        raise ValueError(f"{pathlib.Path(frame.filename).stem.capitalize()} columns MUST include {name} column ID!")
+        raise ValueError(f"{get_caller(caller_depth + 1)} columns MUST include {name} column ID!")
+
+
+def get_caller(caller_depth=1):
+    import inspect
+    import pathlib
+    frame = inspect.stack()[caller_depth]
+    return pathlib.Path(frame.filename).stem.capitalize()
 
 
 def read_safe_file(inp):

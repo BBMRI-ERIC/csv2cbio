@@ -73,7 +73,7 @@ def process(options, data):
             "PATIENT": ["PATIENT_ID", "RESOURCE_ID", "URL"],
             "STUDY": ["RESOURCE_ID", "URL"]
         }
-
+        
         # Then provide all resource items
         with open(f"{options['target_folder']}/data_resource_item_{key}.txt", 'w') as output:
             writer = (
