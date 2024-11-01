@@ -22,7 +22,7 @@ def process_input(input_string):
 
 def main():
     parser = argparse.ArgumentParser(description="Provide a study metadata file.")
-    parser.add_argument('input', type=str, help='File path or study metadata content.', 
+    parser.add_argument('input', type=str, nargs="?", help='File path or study metadata content.', 
                         default=os.environ.get('CBIO_STUDY_DEFINITION', default=None))
     parser.add_argument('-f', '--functions', type=str, nargs="?", help='Optional functions file',
                         default=os.environ.get('CBIO_FUNCTIONS', default="functions.py"))

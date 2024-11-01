@@ -1,7 +1,7 @@
 # Note that ALL PATHS ARE RELATIVE to constants defined within the docker compose if you are using it!
 # Otherwise, these paths are relative to the repository root. To change the relative paths, you must provide
 # them as the CLI args (to run this example):
-#  poetry run python -m cbio_importer --csv_path_prefix=example --functions=example\functions.py --output_path_prefix=example\output example/study.yaml
+#  poetry run python -m cbio_importer --csv_path_prefix=example --functions=example/functions.py --output_path_prefix=example/output -- example/study.yaml
 
 output_folder: output
 
@@ -10,6 +10,7 @@ study_id: test_cancer_study
 cancer_type: colorectal
 study_name: My Colorectal Cancer Study
 study_description: Test Cancer Study From The Demo
+# group: PUBLIC
 # delimiter: "\t"  # your csv delimiter
 
 # Cancer types definition
@@ -35,6 +36,7 @@ patients:
   # have patient only once per record
   group:
     by: ["patient"]
+    # collect patient names, for simplicity record only first occurrence
     aggregate:
       - id: patient_name_first_occur
         source_id: patient_name
@@ -47,7 +49,7 @@ patients:
       description: ID of the patient
       data_type: STRING
     - id: PATIENT_DISPLAY_NAME
-      name: Patient ID
+      name: Patient Name
       source_id: patient_name_first_occur
       description: Patient Name
       data_type: STRING
