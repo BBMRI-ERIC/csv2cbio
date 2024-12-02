@@ -125,17 +125,39 @@ class CbioCSVWriter:
         self.required_colmns = [*self.source_columns_out, *self.constant_columns]
 
         self._filter_input()
+        # todo: consider flexible order by definition order
         if self._option("join_last", require=False):
             self._group_input()
+            self._create_columns()
             self._join_input()
         else:
             self._join_input()
             self._group_input()
+            self._create_columns()
         return self.required_colmns
 
     def _option(self, name, source=None, require=True, default=None, assert_type=None):
         return read_opt(name, source=self.config if source is None else source, require=require,
                         default=default, assert_type=assert_type)
+        
+    def _create_columns(self):
+        create = self._option("create", require=False, assert_type=list)
+        if create:
+            for new_col in create:
+                function = new_col.get("function", None)
+                column_name = new_col.get("new_column", None)
+                columns = new_col.get("source_ids", None)
+
+                if function is not None and column_name is not None and type(columns) == list:
+                    fn = self._read_func(function["name"])
+                    if fn is not None:
+                        args = {**function}
+                        del args["name"]
+                        self.input[column_name] = self.input.apply(lambda row: fn([row[col] for col in columns], **args), axis=1)
+                    else:
+                        print(f"WARN: invalid function {function['name']} does not exist!")
+                else:
+                    print(f"WARN: function, column_name and columns keys for creation are reguired, ignoring {new_column}...")
 
     def _join_input(self):
         joins = self._option("join", require=False, assert_type=list)
@@ -238,7 +260,7 @@ class CbioCSVWriter:
         try:
             print(*[item["name"] for item in self.config["columns"]], sep='\t', file=output)
         except KeyError as e:
-            raise ValueError(f"Could not find 'name' property for {get_caller(2)} entries: check your YAML!")
+            raise ValueError(f"Could not find 'name' property for {get_caller(2)} entries: missing key? check your study YAML!")
 
     def write_comment_descriptions(self, output):
         self._require_init()
@@ -246,7 +268,7 @@ class CbioCSVWriter:
         try:
             print(*[item["description"] for item in self.config["columns"]], sep='\t', file=output)
         except KeyError as e:
-            raise ValueError(f"Could not find 'description' property for {get_caller(2)} entries: check your YAML!")
+            raise ValueError(f"Could not find 'description' property for {get_caller(2)} entries: missing key? check your study YAML!!")
 
     def write_comment_data_types(self, output):
         self._require_init()
@@ -254,7 +276,7 @@ class CbioCSVWriter:
         try:
             print(*[self._write_type(item["data_type"]) for item in self.config["columns"]], sep='\t', file=output)
         except KeyError as e:
-            raise ValueError(f"Could not find 'data_type' property for {get_caller(2)} entries: check your YAML!")
+            raise ValueError(f"Could not find 'data_type' property for {get_caller(2)} entries: missing key? check your study YAML!!")
 
     def write_comment_priority(self, output):
         self._require_init()

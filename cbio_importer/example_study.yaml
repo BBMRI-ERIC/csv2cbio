@@ -5,8 +5,8 @@ study_id:
 cancer_type: colorectal
 study_name:
 study_description:
-# delimiter: "\t"  # your csv delimiter
-# group: SOME_GROUP_NAME  # PUBLIC group is used for authorization bypassing
+elimiter: "\t"  # your csv delimiter, optional
+group: SOME_GROUP_NAME  # PUBLIC group is used for authorization bypassing, optional
 
 # Cancer types definition
 cancer_types:
@@ -106,6 +106,17 @@ patients:
       #or: operator: 
       #  arg: x
       #  command: "<" "<=" "==" "=>" ">" "!=" # applies the operator such that [value] <command> x
+
+
+# If you need to create new columns, you can do:
+patients:
+  file: ...
+  create:
+    - new_column: my_super_column
+      source_ids: ["col1", "col2"]
+      function: 
+        name: my_awesome_function_that_has_input_array_of_two_values_and_custom_named_argument
+        custom_named_argument: x
 
 
 # To agregate rows, you have to (as in SQL) provide a list of columns to group by, and

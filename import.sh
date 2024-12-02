@@ -1,18 +1,46 @@
 #!/bin/bash
 
+ENV_SET=0
 if [ -f .env ]; then
     source .env
-    echo "Env configured."
-elif [ ! -z "${CBIO_STUDY_FOLDER}" ]; then
-    echo "Using existing env configuration."
-else
-    echo "Env missing: .env file not found"
-    exit 1
+    echo "Local Env configured."
+    echo $(realpath .env)
+    ENV_SET=1
+    cbio_path=$(realpath "$CBIO_DEPLOY_FOLDER")
+    temp_folder_path=$(realpath "$CBIO_TEMP_FOLDER")
+    study_folder_path=$(realpath "$CBIO_STUDY_FOLDER")
 fi
 
 
 
+# Enter THIS directory
+cd "${0%/*}"
+if [ $ENV_SET == 0 ]; then
+    if [ -f .env ]; then
+        source .env
+        echo "Env configured."
+        echo $(realpath .env)
+    elif [ ! -z "${CBIO_STUDY_FOLDER}" ]; then
+        echo "Using existing env configuration."
+    else
+        echo "Env missing: .env file not found"
+        exit 1
+    fi
+    cbio_path=$(realpath "$CBIO_DEPLOY_FOLDER")
+    temp_folder_path=$(realpath "$CBIO_TEMP_FOLDER")
+    study_folder_path=$(realpath "$CBIO_STUDY_FOLDER")
+fi
 
+if [ ! -d "$cbio_path" ]; then
+    echo "Error: Cbioportal folder '$cbio_path' does not exist."
+    exit 3
+fi
+if [ ! -d "$study_folder_path" ]; then
+    echo "Error: Study folder '$study_folder_path' does not exist."
+    exit 3
+fi
+
+# Function runner
 try_run() {
     local error_message="$1"
     shift
@@ -26,24 +54,8 @@ try_run() {
     fi
 }
 
-cbio_path=$(realpath "$CBIO_DEPLOY_FOLDER")
-echo $cbio_path
-if [ ! -d "$cbio_path" ]; then
-    echo "Error: Cbioportal folder '$cbio_path' does not exist."
-    exit 3
-fi
-
-temp_folder_path=$(realpath "$CBIO_TEMP_FOLDER")
-
-study_folder_path=$(realpath "$CBIO_STUDY_FOLDER")
-if [ ! -d "$study_folder_path" ]; then
-    echo "Error: Study folder '$study_folder_path' does not exist."
-    exit 3
-fi
-
 
 cd $cbio_path
-
 exists_temp=$("[ -d \"$study_folder_path\" ]")
 
 # if [ -e "$temp_folder_path/portalinfo" ]; then

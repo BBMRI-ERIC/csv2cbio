@@ -1,6 +1,7 @@
 ### Project
 example/output/*.txt
 .run
+/temp
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
