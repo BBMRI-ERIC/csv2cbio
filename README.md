@@ -1,6 +1,7 @@
 # Cbio Importer
 
 A arbitrary CSV convertor to cBioPortal-compatible csv study set. It is using the **offline study import** for cbioportal docker deployment.
+This importer expects cbioportal usage with docker compose, and uses this to automate study validation & import.
 
 > [!IMPORTANT]  
 > Still under development!
