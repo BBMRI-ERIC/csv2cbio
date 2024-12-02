@@ -180,18 +180,20 @@ class CbioCSVWriter:
         filters = self._option("filter", require=False, assert_type=list)
         if filters:
             for filter in filters:
-                name = self._option("source_id", source=filter)
                 rule = self._option("one_of", source=filter, require=False, assert_type=list)
                 if rule:
-                    self.input = self.input.loc[self.input[name].isin(rule)]
+                    column = self._option("source_id", source=filter, assert_type=str)
+                    self.input = self.input.loc[self.input[column].isin(rule)]
                     continue
                 rule = self._option("regex", source=filter, require=False, assert_type=str)
                 if rule:
+                    column = self._option("source_id", source=filter, assert_type=str)
                     self.input = self.input.loc[
-                        self.input[name].apply(lambda x: bool(re.search(rule, x) if isinstance(x, str) else None))]
+                        self.input[column].apply(lambda x: bool(re.search(rule, x) if isinstance(x, str) else None))]
                     continue
                 rule = self._option("operator", source=filter, require=False, assert_type=dict)
                 if rule:
+                    column = self._option("source_id", source=filter, assert_type=str)
                     command = self._option("command", source=rule, assert_type=str)
                     arg = self._option("arg", source=rule)
                     command = self._option(command, source={
@@ -203,8 +205,22 @@ class CbioCSVWriter:
                         "!=": lambda y: y != arg
                     })
                     # todo add support for arbitrary function
-                    self.input = self.input.loc[self.input[name].apply(command)]
+                    self.input = self.input.loc[self.input[column].apply(command)]
                     continue
+                rule = self._option("function", source=filter, require=False, assert_type=dict)
+                if (rule):
+                    cols = self._option("source_id", source=filter)
+                    if type(cols) != str or type(cols) != list:
+                        raise Exception("Filter: source_id must be a string or a list of columns names!")
+                    fn = self._read_func(rule["name"])
+                    if fn is None:
+                        raise Exception("Filter: function.name must be a valid function name!")
+                    else:
+                        args = {**rule}
+                        del args["name"]
+                        self.input = self.input.loc[self.input[cols].apply(command)]
+                    continue
+                
 
     def _group_input(self):
         config = self.config

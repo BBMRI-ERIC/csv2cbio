@@ -99,7 +99,7 @@ my_custom_resource:
 patients:
   file: ...
   filter:
-    - source_id: my_column_to_filter_by 
+    - source_id: my_column_to_filter_by       # the source data, can be also an array (but then you have to use custom function handler for filtering)
       # AND one of the below:
       one_of: ['val1', 'val2']                # matches selected value set
       #or: regex: ""                          # matches a regex
