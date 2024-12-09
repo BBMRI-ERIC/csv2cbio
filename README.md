@@ -30,7 +30,23 @@ Or, run (once poetry is configured)
 ```bash
 `generate.sh`
 ```
-Using the scripts is 
+Using the scripts has the advantage of executing custom env configuration at desired location. Example: project file structure looks like
+```
+project
+  - functions.py
+  - study.yml
+  - .env
+  ...
+```
+and the `.env` file contents is among other:
+```
+CBIO_CSV_PATH_PREFIX=.
+CBIO_FUNCTIONS=functions.py
+CBIO_STUDY_DEFINITION=study.yaml
+...
+```
+you can simply run `path/to/generate.sh` and pahts will be correctly resolved for you, if you
+execute from the project folder.
 
 
 Once ready, you can import your data using `import.sh`:

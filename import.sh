@@ -1,71 +1,30 @@
 #!/bin/bash
+source "${0%/*}/utils.sh"
 
-ENV_SET=0
-if [ -f .env ]; then
-    source .env
-    echo "Local Env configured."
-    echo $(realpath .env)
-    ENV_SET=1
-    cbio_path=$(realpath "$CBIO_DEPLOY_FOLDER")
-    temp_folder_path=$(realpath "$CBIO_TEMP_FOLDER")
-    study_folder_path=$(realpath "$CBIO_STUDY_FOLDER")
-fi
-
-
-
-# Enter THIS directory
-cd "${0%/*}"
-if [ $ENV_SET == 0 ]; then
-    if [ -f .env ]; then
-        source .env
-        echo "Env configured."
-        echo $(realpath .env)
-    elif [ ! -z "${CBIO_STUDY_FOLDER}" ]; then
-        echo "Using existing env configuration."
-    else
-        echo "Env missing: .env file not found"
-        exit 1
-    fi
-    cbio_path=$(realpath "$CBIO_DEPLOY_FOLDER")
-    temp_folder_path=$(realpath "$CBIO_TEMP_FOLDER")
-    study_folder_path=$(realpath "$CBIO_STUDY_FOLDER")
-fi
-
-if [ ! -d "$cbio_path" ]; then
-    echo "Error: Cbioportal folder '$cbio_path' does not exist."
+if [ ! -d "$CBIO_DEPLOY_FOLDER" ]; then
+    echo "Error: Cbioportal folder '$CBIO_DEPLOY_FOLDER' does not exist."
     exit 3
 fi
-if [ ! -d "$study_folder_path" ]; then
-    echo "Error: Study folder '$study_folder_path' does not exist."
+if [ ! -d "$CBIO_STUDY_FOLDER" ]; then
+    echo "Error: Study folder '$CBIO_STUDY_FOLDER' does not exist."
     exit 3
 fi
 
-# Function runner
-try_run() {
-    local error_message="$1"
-    shift
+cd $CBIO_DEPLOY_FOLDER
+if [ -d "$CBIO_TEMP_FOLDER" ]; then
+  exists_temp=0
+else
+  exists_temp=1
+fi
 
-    # Exec
-    "$@"
-
-    if [ $? -ne 0 ]; then
-        echo "Error '$*' EXIT $?: $error_message"
-        exit $?
-    fi
-}
-
-
-cd $cbio_path
-exists_temp=$("[ -d \"$study_folder_path\" ]")
-
-# if [ -e "$temp_folder_path/portalinfo" ]; then
-#     echo "Error: Folder '$temp_folder_path/portalinfo' must not exist - it will be rewritten with existing data."
+# if [ -e "$CBIO_TEMP_FOLDER/portalinfo" ]; then
+#     echo "Error: Folder '$CBIO_TEMP_FOLDER/portalinfo' must not exist - it will be rewritten with existing data."
 #     exit 3
 # fi
 
 try_run "Could not export cbioportal image info for offline import!" \
     docker compose run \
-    -v "$temp_folder_path/portalinfo:/portalinfo" \
+    -v "$CBIO_TEMP_FOLDER/portalinfo:/portalinfo" \
     -w /core/scripts \
     cbioportal \
     ./dumpPortalInfo.pl /portalinfo
@@ -77,23 +36,23 @@ else
 fi
 
 echo "#######################################################################"
-echo "Importing the content of '$study_folder_path'":
-ls $study_folder_path
+echo "Importing the content of '$CBIO_STUDY_FOLDER'":
+ls $CBIO_STUDY_FOLDER
 echo
 echo Note: CBIO_IMPORT_ARGS $CBIO_IMPORT_ARGS
-echo "\$> metaImport.py -p $temp_folder_path/portalinfo -s $study_folder_path --html=$study_folder_path/report.html ${CBIO_IMPORT_ARGS}"
+echo "\$> metaImport.py -p $CBIO_TEMP_FOLDER/portalinfo -s $CBIO_STUDY_FOLDER --html=$CBIO_STUDY_FOLDER/report.html ${CBIO_IMPORT_ARGS}"
 echo
 
 
 try_run "Study import failed!" \
     docker compose run \
-    -v "$study_folder_path:/_to_import_" \
-    -v "$temp_folder_path/portalinfo:/portalinfo:ro" \
+    -v "$CBIO_STUDY_FOLDER:/_to_import_" \
+    -v "$CBIO_TEMP_FOLDER/portalinfo:/portalinfo:ro" \
     cbioportal \
     /core/scripts/importer/metaImport.py -p /portalinfo -s /_to_import_ --html=/_to_import_/report.html$CBIO_IMPORT_ARGS
 
 if [ $exists_temp ]; then
-    rm -rf "$temp_folder_path/portalinfo"
+    rm -rf "$CBIO_TEMP_FOLDER/portalinfo"
 else
-    rm -rf "$temp_folder_path"
+    rm -rf "$CBIO_TEMP_FOLDER"
 fi
