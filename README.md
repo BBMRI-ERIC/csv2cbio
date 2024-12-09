@@ -26,6 +26,12 @@ Or, provide arguments as .env configuration and run instead:
 ```bash
 set -a && source .env && set +a && poetry run python -m cbio_importer
 ```
+Or, run (once poetry is configured)
+```bash
+`generate.sh`
+```
+Using the scripts is 
+
 
 Once ready, you can import your data using `import.sh`:
 ```

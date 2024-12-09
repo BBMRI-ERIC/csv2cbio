@@ -14,9 +14,19 @@ def get_template_file_by_name(name):
     return f"{abspath}study_templates/{name}"
 
 
+def flatten_recursive(nested):
+    for item in nested:
+        if isinstance(item, list):  # If the item is a list, recurse
+            yield from flatten_recursive(item)
+        else:
+            yield item
+
+
 def get_defined_source_csv_headers(config):
-    return [item["source_id"] if "source_id" in item else item["id"] for item in config["columns"] if
-            not "value" in item]
+    return [item["source_id"] if "source_id" in item else 
+                item["source_ids"] if "source_ids" in item else 
+                    item["id"]
+            for item in config["columns"] if not "value" in item]
 
 
 def get_defined_target_csv_headers(config):
@@ -117,6 +127,7 @@ class CbioCSVWriter:
             raise SyntaxError("with_input must be called first!")
         self.config = config
         self.source_columns_out = get_defined_target_csv_headers(config)
+        # Source column IDs are [id1, id2, [id3, id4]] one-level optionally nested array, in case some query requests multiple values
         self.source_columns_in = get_defined_source_csv_headers(config)
         self.constant_columns = get_defined_constant_csv_headers(config)
 
@@ -387,7 +398,7 @@ class CbioCSVWriter:
         self._require_init()
         header = list(self.input.columns)
 
-        header_diff = set(self.source_columns_in) - set(header)
+        header_diff = set(flatten_recursive(self.source_columns_in)) - set(header)
         assert len(header_diff) == 0, f"Column IDs MUST MATCH to the CSV header! \n\
         Is there typo in the header name, or does the clinical file contain header row? \n\
         Do you define a group strategy that redefines the column names (id: <new_name>, source_id: <original>)? \n\

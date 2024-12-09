@@ -122,6 +122,17 @@ patients:
       function: 
         name: my_awesome_function_that_has_input_array_of_two_values_and_custom_named_argument
         custom_named_argument: x
+# However, this can be achieved more naturally by using instead if the output should be an output column:
+  ...
+  columns:
+    - id: PATIENT_ID
+      source_ids: ["col1", "col2"]
+      name: Patient ID
+      description: ID of the patient
+      data_type: STRING                  # one of STRING, NUMBER or BOOLEAN.
+      function: 
+        name: function_that_constructs_patient_id_from_two_cols
+        custom_named_argument: x
 
 
 # To agregate rows, you have to (as in SQL) provide a list of columns to group by, and

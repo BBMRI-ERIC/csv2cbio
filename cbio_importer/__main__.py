@@ -30,8 +30,12 @@ def main():
                         default=os.environ.get('CBIO_CSV_PATH_PREFIX', default=""))
     parser.add_argument('--output_path_prefix', type=str, nargs="?", help='Prefix to add to the output folder',
                         default=os.environ.get('CBIO_OUTPUT_PATH_PREFIX', default=""))
-
+    parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output")
+    
     args = parser.parse_args()
+    verbose_env = os.environ.get('CBIO_VERBOSE', default=None)
+    is_verbose = args.verbose or (verbose_env and verbose_env != "False" and verbose_env != "false")
+    
     input_string = None
     if not sys.stdin.isatty():
         input_string = sys.stdin.read().strip()
@@ -55,7 +59,6 @@ def main():
     FunctionDefinitionFile(args.functions)
 
     prefix = args.csv_path_prefix
-    print(os.environ.get('CBIO_CSV_PATH_PREFIX', default="prdel"))
     if isinstance(prefix, str) and prefix:
         if not prefix.endswith("/"):
             prefix = f"{prefix}/"
@@ -71,6 +74,9 @@ def main():
     target_folder = f"{out_prefix}{study_meta['output_folder'] or '.tmp/'}"
     os.makedirs(target_folder, exist_ok=True)
     from .study_templates import process
+    print(f"Processing data using data path {prefix}, output to {target_folder}")
+    if is_verbose:
+        yaml.dump(study_meta, sys.stdout)
     process(target_folder=target_folder, study_yaml=study_meta, source_prefix=prefix)
 
 
