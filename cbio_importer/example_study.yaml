@@ -67,7 +67,11 @@ my_custom_resource:
         #     "PATIENT": ["PATIENT_ID", "RESOURCE_ID", "URL"],
         #     "STUDY": ["RESOURCE_ID", "URL"]
 
-
+# You can force-convert value to one of types: 'int', 'float', 'str', 'bool', 'datetime'
+  - id: CBIO_COLUMN
+    data_type: STRING
+    ...
+    convert: str
 
 # You can provide a function and its arguments to derive the
 # value you need:
@@ -99,13 +103,14 @@ my_custom_resource:
 patients:
   file: ...
   filter:
-    - source_id: my_column_to_filter_by       # the source data, can be also an array (but then you have to use custom function handler for filtering)
+    - source_id: my_column_to_filter_by       # the source data
       # AND one of the below:
       one_of: ['val1', 'val2']                # matches selected value set
       #or: regex: ""                          # matches a regex
       #or: operator: 
       #  arg: x
       #  command: "<" "<=" "==" "=>" ">" "!=" # applies the operator such that [value] <command> x
+# If you need to use function, you can also use function and source_id or source_ids (list of IDs).
 
 
 # If you need to create new columns, you can do:

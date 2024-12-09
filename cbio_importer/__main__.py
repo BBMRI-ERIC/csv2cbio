@@ -47,10 +47,10 @@ def main():
         except Exception as e:
             study_meta = yaml.safe_load(process_input(input_string))
     except Exception as e:
-        parser.error(f"Failed to load '{study_meta}' file! Is it a valid JSON / YAML?")
+        parser.error(f"Failed to load '{study_meta}' file! Is input {input_string} a valid JSON / YAML? Error {e}")
 
     if not isinstance(study_meta, dict):
-        parser.error(f"Failed to load '{study_meta}' file! Is it a valid JSON / YAML? Got: {study_meta}")
+        parser.error(f"Failed to load data! Is input {input_string} a valid JSON / YAML? Got: {study_meta}")
 
     FunctionDefinitionFile(args.functions)
 

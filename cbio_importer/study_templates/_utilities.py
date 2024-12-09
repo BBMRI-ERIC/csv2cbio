@@ -209,16 +209,19 @@ class CbioCSVWriter:
                     continue
                 rule = self._option("function", source=filter, require=False, assert_type=dict)
                 if (rule):
-                    cols = self._option("source_id", source=filter)
-                    if type(cols) != str or type(cols) != list:
-                        raise Exception("Filter: source_id must be a string or a list of columns names!")
-                    fn = self._read_func(rule["name"])
+                    cols = self._option("source_id", source=filter, require=False, assert_type=str)
+                    if cols is None:
+                        cols = self._option("source_ids", source=filter, require=False, assert_type=list)
+                    if cols is None:
+                         raise Exception("Filter: source_id or source_ids ust be defined as a filter argument!")
+                     
+                    fn = self._read_func(rule.get("name"))
                     if fn is None:
                         raise Exception("Filter: function.name must be a valid function name!")
                     else:
                         args = {**rule}
                         del args["name"]
-                        self.input = self.input.loc[self.input[cols].apply(command)]
+                        self.input = self.input.loc[self.input[cols].apply(fn, axis=1)]
                     continue
                 
 
@@ -318,6 +321,9 @@ class CbioCSVWriter:
         return value
 
     def _read_func(self, fnpath):
+        """
+        Retrieves function either from a module path, or a global function name (e.g. max)
+        """
         try:
             path = fnpath.rsplit(".", maxsplit=1)
             if len(path) > 1:
@@ -334,21 +340,32 @@ class CbioCSVWriter:
             return getattr(self.fn_module, path[0]) if len(path) > 0 else None
         except Exception as e:
             raise ValueError(f"Invalid function provided: {fnpath.rsplit('.', maxsplit=1)}") from e
-
-    def _get_value(self, item, key, value):
-        function = self._option("function", source=item, require=False, assert_type=dict)
+        
+    def _get_value(self, spec, value, na_value=""):
+        """
+        Executes function retrieved by a function spec block:
+        function:
+            name: name
+            ... custom args ...
+        """
+        function = self._option("function", source=spec, require=False, assert_type=dict)
         fn = self._read_func(function["name"]) if function is not None else None
+
         if fn is not None:
             args = {**function}
             del args["name"]
             value = fn(value, **args)
 
         if pd.isna(value):
-            return ""
-
-        conversion = self._option("convert", source=item, require=False, assert_type=str)
+            return na_value
+        
+        conversion = self._option("convert", source=spec, require=False, assert_type=str)
         if conversion:
-            value = self._convert_value(value, conversion)
+            try:
+                value = self._convert_value(value, conversion)
+            except Exception as e:
+                print("WARNING: failed to convert value", value, "to type", conversion, "using '", na_value ,"' value.")
+                return na_value
         return value
 
     def _convert_value(self, value, to_type):
@@ -390,11 +407,11 @@ class CbioCSVWriter:
                 value = row[self.source_columns_in[i]]
                 out_key = self.source_columns_out[i]
                 self._test_value(out_key, value)
-                values.append(self._get_value(self.cols_map[out_key], out_key, value))
+                values.append(self._get_value(self.cols_map[out_key], value))
 
             for key, value in zip(self.constant_columns, constant_values):
                 self._test_value(key, value)
-                values.append(self._get_value(self.cols_map[key], key, value))
+                values.append(self._get_value(self.cols_map[key], value))
             print(*values, sep='\t', file=output)
 
 
