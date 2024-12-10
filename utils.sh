@@ -8,18 +8,20 @@ function apply_realpath() {
         echo "WARNING: Skipping unset or empty variable: $vname"
         continue
     fi
-    if [ -f "$vvalue" ]  || [ -d "$vvalue" ] || [ "$vname" == "CBIO_TEMP_FOLDER" ]; then
+    # Enforce target directories/files exist, except some that can be created (output related)
+    if [ -f "$vvalue" ]  || [ -d "$vvalue" ] || [ "$vname" == "CBIO_TEMP_FOLDER" ] || [ "$vname" == "CBIO_OUTPUT_PATH_PREFIX" ]; then
         vvalue=$(realpath "$vvalue")
         export "$vname"="$vvalue"
     fi
+    #TODO: some prop might be ignored and error is hard to find... but the variable CBIO_STUDY_DEFINITION ca for example carry values,
+    # or some are allowed to be missing, or we are running generate script that does not need all the options.. 
     done
 }
 
 ENV_SET=0
 if [ -f .env ]; then
     source .env
-    echo "Local Env configured."
-    echo $(realpath .env)
+    echo "Local Env configured." $(realpath .env)
     ENV_SET=1
     apply_realpath
 fi

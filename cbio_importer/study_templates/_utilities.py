@@ -135,24 +135,48 @@ class CbioCSVWriter:
         self.cols_map = {cols[i]["id"].upper(): cols[i] for i in range(len(cols))}
         self.required_colmns = [*self.source_columns_out, *self.constant_columns]
 
-        self._filter_input()
-        # todo: consider flexible order by definition order
-        if self._option("join_last", require=False):
-            self._group_input()
-            self._create_columns()
-            self._join_input()
-        else:
-            self._join_input()
-            self._group_input()
-            self._create_columns()
+        # New, preprocess logics
+        if not self._preprocess():
+            # If not defined, fall back to old
+            self._filter_input()
+            # todo: consider flexible order by definition order
+            if self._option("join_last", require=False):
+                self._group_input()
+                self._create_columns()
+                self._join_input()
+            else:
+                self._join_input()
+                self._group_input()
+                self._create_columns()
         return self.required_colmns
 
     def _option(self, name, source=None, require=True, default=None, assert_type=None):
         return read_opt(name, source=self.config if source is None else source, require=require,
                         default=default, assert_type=assert_type)
         
-    def _create_columns(self):
-        create = self._option("create", require=False, assert_type=list)
+    def _preprocess(self):
+        rules = self._option("preprocess", require=False, assert_type=list)
+        if rules is None:
+            return False
+        for rule in rules:
+            kind = self._option("task", source=rule, assert_type=str)
+            if not kind:
+                raise SyntaxError("Preprocessing: kind is required value!")
+            if kind == "create":
+                self._create_columns([rule])
+            elif kind == "join":
+                self._join_input([rule])
+            elif kind == "filter":
+                self._filter_input([rule])
+            elif kind == "group":
+                # did not support list of elements to perform
+                self._group_input(rule)
+            else:
+                raise SyntaxError(f"Preprocessing: unsupported value '{kind}'!")
+        return True
+        
+    def _create_columns(self, spec = None):
+        create = spec if spec else self._option("create", require=False, assert_type=list)
         if create:
             for new_col in create:
                 function = new_col.get("function", None)
@@ -170,8 +194,8 @@ class CbioCSVWriter:
                 else:
                     print(f"WARN: function, column_name and columns keys for creation are reguired, ignoring {new_column}...")
 
-    def _join_input(self):
-        joins = self._option("join", require=False, assert_type=list)
+    def _join_input(self, spec = None):
+        joins = spec if spec else self._option("join", require=False, assert_type=list)
         if joins:
             for join in joins:
                 file = self._option("file", source=join, assert_type=str)
@@ -187,8 +211,8 @@ class CbioCSVWriter:
                     )
                 )
 
-    def _filter_input(self):
-        filters = self._option("filter", require=False, assert_type=list)
+    def _filter_input(self, spec = None):
+        filters = spec if spec else self._option("filter", require=False, assert_type=list)
         if filters:
             for filter in filters:
                 rule = self._option("one_of", source=filter, require=False, assert_type=list)
@@ -232,13 +256,16 @@ class CbioCSVWriter:
                     else:
                         args = {**rule}
                         del args["name"]
-                        self.input = self.input.loc[self.input[cols].apply(fn, axis=1)]
+                        if type(cols) == str:
+                            # String needs no axis - one col
+                            self.input = self.input.loc[self.input[cols].apply(lambda row: fn(row, **args))]
+                        else:
+                            self.input = self.input.loc[self.input[cols].apply(lambda row: fn(row, **args), axis=1)]
                     continue
                 
 
-    def _group_input(self):
-        config = self.config
-        group_rules = config.get("group", None)
+    def _group_input(self, spec = None):
+        group_rules = spec if spec else self._option("group", require=False, assert_type=dict)
         if group_rules is not None:
             aggregates = self._option("aggregate", source=group_rules, require=False)
             rules = {}
@@ -405,7 +432,7 @@ class CbioCSVWriter:
         Could not find these columns: {header_diff} \n\
         Existing columns: {header}"
 
-        self.input = self.input.replace({None: np.nan})
+        self.input = self.input.replace({None: np.nan}).infer_objects(copy=False)
 
         for col in self.guard_columns:
             require_header(self.required_colmns, col, 2)
