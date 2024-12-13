@@ -78,11 +78,12 @@ my_custom_resource:
 #
   - id: CBIO_COLUMN
     data_type: STRING
-    # value: "constant"  # if value is specified, the function is passed a constant, otherwise it is passed a cell value
+    # value: "constant"  # if value is specified, the function is passed "constant", otherwise it is passed a cell value
     function:
         name: python.module.path.function_name
         argA: valueA
         argB: valueB
+# you can set 'value: ' to pass nothing
 
 # Note that some functions globally available can be specified wihtout the prefix. An easy way
 # of using a custom function is to define python file with custom logics.
@@ -198,3 +199,7 @@ patients:
 
 # to first filter, then group, then again filter
 
+## Notes:
+# You can retrieve the root sourcs path to fecth custom file etc..
+# data_folder = os.getenv("CBIO_CSV_PATH_PREFIX")
+# to for example read other files from code, or create new files..

@@ -42,7 +42,7 @@ def main():
     if not input_string and args.input:
         input_string = args.input
     else:
-        parser.error("No input provided. Either provide a filename, file content, or use stdin.")
+        parser.error("No input provided. Either provide a filename, file content, or use stdin (directly or via CBIO_STUDY_DEFINITION variable).")
 
     study_meta = {}
     try:

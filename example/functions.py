@@ -1,6 +1,9 @@
 import pathlib
 import pandas as pd
 
+# Retrieve the root sourcs path to fecth custom file etc..
+data_folder = os.getenv("CBIO_CSV_PATH_PREFIX")
+
 # Group-by handlers: the first arugment is pd.Series
 def select_first(values: pd.Series):
     return values.iloc[0] if len(values) > 0 else None
