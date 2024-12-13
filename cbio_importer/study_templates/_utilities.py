@@ -188,7 +188,7 @@ class CbioCSVWriter:
                     if fn is not None:
                         args = {**function}
                         del args["name"]
-                        self.input[column_name] = self.input.apply(lambda row: fn([row[col] for col in columns], **args), axis=1)
+                        self.input[column_name] = self.input.apply(lambda row: fn(row[columns], **args), axis=1)
                     else:
                         print(f"WARN: invalid function {function['name']} does not exist!")
                 else:
