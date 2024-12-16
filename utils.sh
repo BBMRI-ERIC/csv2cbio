@@ -55,3 +55,5 @@ try_run() {
         exit $?
     fi
 }
+
+docker_compose="${DOCKER_COMPOSE_BIN:=docker compose}"

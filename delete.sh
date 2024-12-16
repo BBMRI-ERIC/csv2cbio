@@ -10,20 +10,6 @@ if [ ! -d "$CBIO_STUDY_FOLDER" ]; then
     exit 3
 fi
 
-# Function runner
-try_run() {
-    local error_message="$1"
-    shift
-
-    # Exec
-    "$@"
-
-    if [ $? -ne 0 ]; then
-        echo "Error '$*' EXIT $?: $error_message"
-        exit $?
-    fi
-}
-
 echo "About to delete study defined in $CBIO_STUDY_FOLDER"
 read -p "Are you sure? [y/n] " -n 1 -r
 echo 
@@ -31,7 +17,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]
 then
     cd $CBIO_DEPLOY_FOLDER
     try_run "Could not delete study defined in $CBIO_STUDY_FOLDER!" \
-        docker compose run \
+        $docker_compose run \
         -v "$CBIO_STUDY_FOLDER:/_to_delete_" \
         cbioportal \
         /core/scripts/importer/cbioportalImporter.py -c remove-study -meta "/_to_delete_/meta_study.txt"

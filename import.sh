@@ -23,7 +23,7 @@ fi
 # fi
 
 try_run "Could not export cbioportal image info for offline import!" \
-    docker compose run \
+    $docker_compose run \
     -v "$CBIO_TEMP_FOLDER/portalinfo:/portalinfo" \
     -w /core/scripts \
     cbioportal \
@@ -45,7 +45,7 @@ echo
 
 
 try_run "Study import failed!" \
-    docker compose run \
+    $docker_compose run \
     -v "$CBIO_STUDY_FOLDER:/_to_import_" \
     -v "$CBIO_TEMP_FOLDER/portalinfo:/portalinfo:ro" \
     cbioportal \

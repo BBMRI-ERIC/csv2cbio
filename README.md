@@ -76,3 +76,7 @@ Supported operations:
  - [x] filtering
  - [x] joins
  - [x] grouping
+
+## Docker compose
+By default, `docker compose` is used to run the commands. You can ovverride this 
+ by setting `DOCKER_COMPOSE_BIN="docker-compose"`.
