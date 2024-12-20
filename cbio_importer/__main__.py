@@ -3,10 +3,11 @@ import argparse
 import subprocess
 import sys
 import json
+import pathlib
 
 import yaml
 
-from cbio_importer.study_templates._singletons import FunctionDefinitionFile
+from cbio_importer.study_templates._singletons import FunctionDefinitionFile, TemporaryFilesDirectory
 
 
 def process_input(input_string):
@@ -73,6 +74,33 @@ def main():
         out_prefix = ""
     target_folder = f"{out_prefix}{study_meta['output_folder'] or '.tmp/'}"
     os.makedirs(target_folder, exist_ok=True)
+    
+    out_folder = pathlib.Path(prefix) / pathlib.Path(".csv2cbio")
+    out_folder_abspath = os.path.abspath(out_folder)
+    TemporaryFilesDirectory(out_folder_abspath)
+    print(f"Temporary & helper files will be saved to {out_folder_abspath}.")
+    
+    if os.path.exists(out_folder): 
+        if os.path.isfile(out_folder): 
+            raise Exception(f"Target path {out_folder} is a file! We need this path to store helper files into.")
+        elif os.path.isdir(out_folder): 
+            print("Cleaning contents of the folder.")
+            try:
+                for item in os.listdir(out_folder):
+                    item_path = os.path.join(out_folder, item)
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.remove(item_path)
+                    # else do not delete directories, at least for now
+            except Exception as e:
+                print(f"Failed to clean directory {out_folder}. {e}")
+    else:
+        try:
+            os.makedirs(out_folder)  # Create the directory if it doesn't exist
+        except Exception as e:
+            print(f"Failed to create directory {out_folder}. {e}")
+    print()
+    
+    # Processing beings
     from .study_templates import process
     print(f"Processing data using data path {prefix}, output to {target_folder}")
     if is_verbose:

@@ -3,18 +3,33 @@
 A arbitrary CSV convertor to cBioPortal-compatible csv study set. It is using the **offline study import** for cbioportal docker deployment.
 This importer expects cbioportal usage with docker compose, and uses this to automate study validation & import.
 
-> [!IMPORTANT]  
-> Still under development!
 
-On more information, see ``example/`` folder.
-To run app on your machine use:
+## How to Setup
+> [!IMPORTANT]  
+> For usage examples, see ``example/`` folder.
+
+In general, you need to have a csv files with data, `study.yaml` file that
+describes how to transform csvs to cbioportal-compatible csvs. And `.env` definitions in case you want to avoid passing
+all the options manually through CLI.
+
+## How to Run Study Generator
+Once a study is ready, run the study generator. Install required libraries if you haven't already:
 
 `````bash
 poetry install && poetry build && poetry run python -m cbio_importer --help
 `````
-which will print usage information. 
+This will print usage information. Recommeded usage is to create `.env` file with configurations. Note that you can basically copy this file AS-IS.
+`functions.py` and `study.yml` should exist of course (functions file might actually not exist if unused).
+```bash
+CBIO_CSV_PATH_PREFIX=.
+CBIO_FUNCTIONS=functions.py
+CBIO_STUDY_DEFINITION=study.yml
+CBIO_OUTPUT_PATH_PREFIX=.
+```
+and simply run `generate.sh` **from the folder of `.env` file**. Do **NOT** use the repository folder for generating studies. Simply run
+the generate script relative (or absolute) path relative to the folder that defines env file.
 
-Example study generation from the host machine:
+Alternatively, provide arguments manually:
 `````bash
 poetry run python -m cbio_importer \
   --csv_path_prefix=example \
@@ -22,34 +37,18 @@ poetry run python -m cbio_importer \
   --output_path_prefix=example/output \
   example/study.yaml
 `````
-Or, provide arguments as .env configuration and run instead:
+Or, provide arguments as desired .env configuration and run instead:
 ```bash
 set -a && source .env && set +a && poetry run python -m cbio_importer
 ```
-Or, run (once poetry is configured)
-```bash
-`generate.sh`
-```
-Using the scripts has the advantage of executing custom env configuration at desired location. Example: project file structure looks like
-```
-project
-  - functions.py
-  - study.yml
-  - .env
-  ...
-```
-and the `.env` file contents is among other:
-```
-CBIO_CSV_PATH_PREFIX=.
-CBIO_FUNCTIONS=functions.py
-CBIO_STUDY_DEFINITION=study.yaml
-...
-```
-you can simply run `path/to/generate.sh` and pahts will be correctly resolved for you, if you
-execute from the project folder.
+
+## How to Import studies
+CBioPortal must be running in a docker compose setup. If you have custom docker compose with custom
+service names, this will not work for you - you should keep to the official docker compose. Of course,
+generated studies can be imported in any way you would like, but this process automates it for you.
 
 
-Once ready, you can import your data using `import.sh`:
+Add the following to the env file:
 ```
 # you have to provide these in `.env` file or manually export in your shell
 CBIO_DEPLOY_FOLDER=../../cbioportal-deployment               # path to cbioportal docker-compose.yml
@@ -57,22 +56,27 @@ CBIO_IMAGE_NAME=cbioportal-6.0.17-7-g631429dbb8-dirty-bbmri  # docker image name
 CBIO_TEMP_FOLDER=temp                                        # any folder (best non-existent) to use for temp data
 CBIO_STUDY_FOLDER=example/output                             # study folder where .csv files for import exist
 ```
-and run
-`./import.sh`
+and run `[path]/[to]/import.sh` to create or update study data.
+
+To delete a study, simply run ``[path]/[to]/delete.sh``.
 
 
 # Features:
-Supported cbioportal entities:
- - study
-   - patient
-   - sample
-   - resource
-     - sample resource
-     - patient resource
-     - study resource
+Each data entity must be supported. For now, only few are supported. Adding support for new entries should be farily easy. 
 
-Supported operations:
+Supported cbioportal entities:
+ - [ ] study
+   - [x] patient
+   - [x] sample
+   - [x] resource
+     - [x] sample resource
+     - [x] patient resource
+     - [x] study resource
+   - [ ] ... request other types
+
+Supported operations on csv files:
  - [x] custom functions
+ - [x] custom new variables, value derivation
  - [x] filtering
  - [x] joins
  - [x] grouping

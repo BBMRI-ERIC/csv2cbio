@@ -3,23 +3,6 @@
 Converts sets of your custom yaml files to cbio-compatible csvs and uploads them
 in a secure way!
 
-### Features:
-Supported cbioportal entities:
- - [ ] study
-   - [x] patient
-   - [x] sample
-   - [x] resource
-     - [x] sample resource
-     - [x] patient resource
-     - [x] study resource
-   - [ ] ... request other types
-   
-Supported operations:
- - [x] custom functions
- - [x] filtering
- - [x] joins
- - [x] grouping
-
 ### The Basic Structure
 
 ````yaml
@@ -68,7 +51,8 @@ my_custom_resource:
 ````
 
 Simple enough! Just describes the study and cancer, the client, their samples and possibly some custom resource file.
-But world is not that simple, right?
+But dealing with data is usually not that simple, right?
+
 
 ### CBioPortal Specifics
 Reserved keywords are all of the above: global variables (e.g. `delimier`), `patients`... etc.
@@ -122,8 +106,7 @@ To define a constant value, we can say:
 ### Functions
 Not only in columns, we can use _functions_. These might come from existing modules.
 Just provide `name.of.module.function_name` path. But remember, ALL FUNCTIONS
-get as a first value the main value - based on context. In columns, it is either a constant
-or the column value (see above) in question. With aggregation rules, it will be an array (see below).
+get as a first value the main value - based on context. 
 
 Custom functions are defined in custom functions file, which you need to specify path to.
 ````python
@@ -140,7 +123,25 @@ via ENV) we can do something like
           name: fn
           my_arg: 3
 ````
+
+Apart from built-in functions that python supports, you can also import library functions (`uuid.uuid4` for example)
+if available, and there are even built-in functions for specific cbioportal scenarios. See
+`study_templates/default_functions`. TODO: Have examples
+
 Neat!
+
+
+#### Function Types
+Depending on a function use, different functions can be used for different purposes, for example functions that return boolean
+should be used for filtering logics and so on. But generally, all functions are usable in every context, **but only if the 
+first value type fits**.
+
+In general there are two types of functions:
+ - that take `pd.Series` first argument, these functions are typically applied to a list of values (.e.g used with `source_ids`)
+ - that take a cell value like `str`, `int` or similar: these functions are typically applied to a single cell (.e.g used with `source_id`)
+
+Of course, if given function expects an integer, you cannot supply it with an essay about your childhood. Please, check your functions
+in question.
 
 ## Filtering
 Filtering is **always done first**. To remove selected rows, simply do:
@@ -213,10 +214,3 @@ patients:
 > EACH of these can be used multiple times. You can filter using multiple rules, 
  join multiple tables and define grouping logics for multiple columns.
 > Just <h3>REMEMBER TO KEEP THE OPERATION ORDER IN MIND WHEN RENAMING COLUMNS</h3>
-
-
-
-
-
-
-

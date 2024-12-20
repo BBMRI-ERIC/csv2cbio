@@ -28,6 +28,12 @@ class FunctionDefinitionFile:
 
 
 @singleton
+class TemporaryFilesDirectory:
+    def __init__(self, value):
+        self.path = value
+
+
+@singleton
 class AbsPath:
     def __init__(self, value):
         self.path = value

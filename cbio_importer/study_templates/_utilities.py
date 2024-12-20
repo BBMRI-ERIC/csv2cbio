@@ -1,11 +1,13 @@
 import os
 import re
+import sys
 from importlib import import_module
 import random
 
 import pandas as pd
 import numpy as np
 from ._singletons import FunctionDefinitionFile, AbsPath
+from .default_functions import *
 
 abspath = AbsPath().path
 
@@ -181,18 +183,26 @@ class CbioCSVWriter:
             for new_col in create:
                 function = new_col.get("function", None)
                 column_name = new_col.get("new_column", None)
-                columns = new_col.get("source_ids", None)
+                columns = new_col.get("source_id", new_col.get("source_ids"))  # fetch id or ids 
 
-                if function is not None and column_name is not None and type(columns) == list:
+                if function is not None and column_name is not None:
                     fn = self._read_func(function["name"])
                     if fn is not None:
                         args = {**function}
                         del args["name"]
-                        self.input[column_name] = self.input.apply(lambda row: fn(row[columns], **args), axis=1)
                     else:
                         print(f"WARN: invalid function {function['name']} does not exist!")
+                        continue
+                            
+                    try:
+                        if type(columns) == list or type(columns) == str:
+                            self.input[column_name] = self.input.apply(lambda row: fn(row[columns], **args), axis=1)
+                        else:
+                            print(f"WARN: 'source_id' or 'source_ids' valid values are required! Ignoring creation of {new_col}...")
+                    except KeyError as e:
+                        raise ValueError(f"Invalid key for new column! Are you sure your data contains: {columns}?") from e
                 else:
-                    print(f"WARN: function, column_name and columns keys for creation are reguired, ignoring {new_column}...")
+                    print(f"WARN: 'function', 'new_column' keys for creation are reguired! Ignoring creation of {new_col}...")
 
     def _join_input(self, spec = None):
         joins = spec if spec else self._option("join", require=False, assert_type=list)
@@ -367,6 +377,11 @@ class CbioCSVWriter:
             if len(path) > 1:
                 m = import_module(path[0])
                 return getattr(m, path[1])
+            else:
+                fn = globals().get(path[0])
+                if callable(fn):
+                    return fn
+        
             if self.fn_module is None:
                 definition_path = FunctionDefinitionFile(None).path
                 if definition_path is None:
@@ -374,7 +389,20 @@ class CbioCSVWriter:
                 import importlib
                 spec = importlib.util.spec_from_file_location("cbio.functions", definition_path)
                 self.fn_module = importlib.util.module_from_spec(spec)
+                
+                # Update functions file with default functions definitions
+                default_functions = None
+                original_sys_path = sys.path.copy()
+                try:
+                    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))) 
+                    default_functions = importlib.import_module("default_functions")
+                finally:
+                    sys.path = original_sys_path
+
                 spec.loader.exec_module(self.fn_module)
+                # Only now update module with new content
+                self.fn_module.__dict__.update(default_functions.__dict__)
+                
             return getattr(self.fn_module, path[0]) if len(path) > 0 else None
         except Exception as e:
             raise ValueError(f"Invalid function provided: {fnpath.rsplit('.', maxsplit=1)}") from e
