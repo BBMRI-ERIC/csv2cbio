@@ -97,10 +97,11 @@ def is_unique(value: str, context: str):
     return False
 
 
-# Patient ID unique on biopsy number
+anonymization_mappings = {}
 def anonymize(value, mapper_filename: str = "anonym_mappings.csv", generator: str = "increment", *args, **kwargs):
     """
-    Anonymize given value. Store mappings in a temporary file 'mapper_filename'.
+    Anonymize given value. Store mappings in a temporary file 'mapper_filename'. If a provided value exists in the mappings,
+    it is retrieved and not generated.
     :param value: argument passed by the library - the reference value
     :param mapper_filename: filename to store mappings in
     :param generator: generator name for the IDs. 'value' is given as the first argument. Usage:
@@ -117,53 +118,27 @@ def anonymize(value, mapper_filename: str = "anonym_mappings.csv", generator: st
     :param kwargs: arguments for the ID generator function
     :return: unique ID
     """
-    data_folder = TemporaryFilesDirectory(None).path
+    mapping = _get_anonymization_mapping(mapper_filename)
+    for row in mapping:
+        if len(row) == 2 and row[1] == value:
+            return row[0]
+
     dealer = _get_function_by_name(generator)
-    nid = dealer(value, *args, **kwargs)
-    with open(f"{data_folder}/{mapper_filename}", 'a') as file:
-        print(nid, value, sep="\t", file=file)
-    return nid
-
-
-def deanonymize(value, mapper_filename: str = "anonym_mappings.csv"):
-    """
-    Find original ID of anonymized value
-    :param value: argument passed by the library - the reference value
-    :param mapper_filename: filename to store mappings in
-    :return: unique ID added as 'anonymize'
-    """
-    data_folder = TemporaryFilesDirectory(None).path
-    value = str(int(value))
-    with open(f"{data_folder}/{mapper_filename}", mode='r', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile, delimiter="\t")
-        for row in reader:
-            if row[1] == value:
-                return row[0]
-    raise Exception(f"Unknow anonymized ID (reading {mapper_filename}): {value}")
-
+    new_id = dealer(value, *args, **kwargs)
+    _persist_append_anonymization_data_item(mapper_filename, new_id, value)
+    return new_id
 
 def anonymize_list(values: pd.Series, mapper_filename: str = "anonym_mappings.csv", generator: str = "increment", *args, **kwargs):
     return anonymize(values.str.cat(sep='~'), mapper_filename=mapper_filename, generator=generator, *args, **kwargs)
-
-
-def deanonymize_list(values: pd.Series, mapper_filename: str = "anonym_mappings.csv"):
-    return deanonymize(values.str.cat(sep='~'), mapper_filename=mapper_filename)
 
 
 def gen_simple_patient_id(value, mapper_filename: str = "patient_mappings.csv"):
     return anonymize(value, mapper_filename=mapper_filename, generator="increment", prefix="P")
 
 
-def ret_simple_patient_id(value, mapper_filename: str = "patient_mappings.csv"):
-    return deanonymize(value, mapper_filename=mapper_filename)
-
-
 def gen_simple_sample_id(value, mapper_filename: str = "sample_mappings.csv"):
     return anonymize(value, mapper_filename=mapper_filename, generator="increment", prefix="S")
 
-
-def ret_simple_sample_id(value, mapper_filename: str = "sample_mappings.csv"):
-    return deanonymize(value, mapper_filename=mapper_filename)
 
 
 """
@@ -194,3 +169,58 @@ def increment(_, prefix: str = "", zfill: int = 5):
     global id_dealer
     id_dealer = id_dealer + 1
     return prefix + str(id_dealer).zfill(zfill)
+
+
+def _get_anonymization_mapping(mapper_filename):
+    global anonymization_mappings
+    mapping = anonymization_mappings.get(mapper_filename)
+    if not mapping:
+        mapping = _load_anonymization_data(mapper_filename)
+    return mapping
+
+
+def _load_anonymization_data(mapper_filename, missing_ok=True):
+    global anonymization_mappings
+    data_folder = TemporaryFilesDirectory(None).path
+    
+    file = f"{data_folder}/{mapper_filename}"
+    if not os.path.isfile(file):
+        if not missing_ok:
+            raise Exception(f"Anonymization mappings not found (reading {mapper_filename})!")
+        result = {}
+        anonymization_mappings[mapper_filename] = result
+        return result
+    
+    with open(file, mode='r', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile, delimiter="\t")
+        result = list(reader)
+        anonymization_mappings[mapper_filename] = result
+        return result
+
+    raise Exception(f"Anonymization mappings - unknown error (reading {mapper_filename})!")
+
+
+def _persist_anonymization_data(mapper_filename):
+    global anonymization_mappings
+    data_folder = TemporaryFilesDirectory(None).path
+    mapping = anonymization_mappings.get(mapper_filename)
+    if not mapping:
+        raise Exception(f"Anonymization mappings - storage of non-existent data - probably a bug ({mapper_filename})!")
+
+    file = f"{data_folder}/{mapper_filename}"
+    with open(file, 'w', encoding='utf-8') as file:
+        for row in mapping:
+            print(*row, sep="\t", file=file)
+
+
+def _persist_append_anonymization_data_item(mapper_filename, *row):
+    global anonymization_mappings
+    data_folder = TemporaryFilesDirectory(None).path
+    mapping = anonymization_mappings.get(mapper_filename)
+    if not mapping:
+        raise Exception(f"Anonymization mappings - storage of non-existent data - probably a bug ({mapper_filename})!")
+    mapping.append(row)
+    
+    file = f"{data_folder}/{mapper_filename}"
+    with open(file, 'a', encoding='utf-8') as file:
+        print(*row, sep="\t", file=file)
