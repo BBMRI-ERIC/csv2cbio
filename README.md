@@ -3,6 +3,7 @@
 A arbitrary CSV convertor to cBioPortal-compatible csv study set. It is using the **offline study import** for cbioportal docker deployment.
 This importer expects cbioportal usage with docker compose, and uses this to automate study validation & import.
 
+Python, Poetry, and Linux or WSL subsystem required.
 
 ## How to Setup
 > [!IMPORTANT]  
@@ -16,10 +17,10 @@ all the options manually through CLI.
 Once a study is ready, run the study generator. Install required libraries if you haven't already:
 
 `````bash
-poetry install && poetry build && poetry run python -m cbio_importer --help
+poetry install && poetry build
 `````
-This will print usage information. Recommeded usage is to create `.env` file with configurations. Note that you can basically copy this file AS-IS.
-`functions.py` and `study.yml` should exist of course (functions file might actually not exist if unused).
+Recommeded usage is to create `.env` file with configurations. Note that you can basically copy this example below AS-IS.
+`functions.py` and `study.yml` should exist in the desired directory of course (functions file might actually not exist if unused).
 ```bash
 CBIO_CSV_PATH_PREFIX=.
 CBIO_FUNCTIONS=functions.py
@@ -81,6 +82,9 @@ Supported operations on csv files:
  - [x] joins
  - [x] grouping
 
-## Docker compose
-By default, `docker compose` is used to run the commands. You can ovverride this 
+## Commands & Binaries Used
+By default, `docker compose` is used to run the commands. You can override this 
  by setting `DOCKER_COMPOSE_BIN="docker-compose"`.
+
+By default, `python` is used to run cbio2csv. You can override this 
+ by setting for example `PYTHON_BIN="python3"`. You might also want to set `PIP_BIN="pip3"` in this case.

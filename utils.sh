@@ -57,3 +57,5 @@ try_run() {
 }
 
 docker_compose="${DOCKER_COMPOSE_BIN:=docker compose}"
+python="${PYTHON_BIN:=python}"
+pip="${PIP_BIN:=pip}"
