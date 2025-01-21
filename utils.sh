@@ -56,6 +56,60 @@ try_run() {
     fi
 }
 
+
 docker_compose="${DOCKER_COMPOSE_BIN:=docker compose}"
 python="${PYTHON_BIN:=python}"
-pip="${PIP_BIN:=pip}"
+
+
+check_poetry() {
+    COMMAND=poetry
+    if ! command -v "$COMMAND" &> /dev/null; then
+        echo "Command '$COMMAND' is not installed."
+        read -p "Do you wish to install it? (y/n): " answer
+        case $answer in
+            [Yy]* )
+                echo "Using $python"
+                curl -sSL https://install.python-poetry.org | $python -
+                if ! command -v "$COMMAND" &> /dev/null; then
+                    add_to_path "$HOME/.local/bin" ~/.bashrc
+                fi
+                poetry env use $python
+                ;;
+            [Nn]* )
+                echo "Skipping installation of '$COMMAND'."
+                ;;
+            * )
+                echo "Invalid response. Skipping installation."
+                ;;
+        esac
+    fi
+}
+
+check_poetry_install() {
+    VENV_PATH=$(poetry env info --path 2>/dev/null)
+
+    if [ -d "$VENV_PATH" ]; then
+        echo "Poetry environment found at: $VENV_PATH"
+        poetry run python -c "import yaml" &>/dev/null
+        if [ $? -eq 0 ]; then
+            echo
+        else
+            echo "Dependencies are missing. Running 'poetry install'..."
+            poetry lock
+            poetry install
+        fi
+    else
+        echo "No Poetry environment found. Running 'poetry install'..."
+        poetry install
+    fi
+}
+
+add_to_path() {
+    DIR=$1
+    SHELL_RC=$2
+
+    export PATH="$DIR:$PATH"
+    if ! grep -Fxq "export PATH=\"$DIR:\$PATH\"" "$SHELL_RC"; then
+        echo "export PATH=\"$DIR:\$PATH\"" >> "$SHELL_RC"
+    fi
+}

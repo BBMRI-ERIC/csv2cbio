@@ -125,7 +125,7 @@ def anonymize(value, mapper_filename: str = "anonym_mappings.csv", generator: st
 
     dealer = _get_function_by_name(generator)
     new_id = dealer(value, *args, **kwargs)
-    _persist_append_anonymization_data_item(mapper_filename, new_id, value)
+    persist_append_anonymization_data_item(mapper_filename, new_id, value)
     return new_id
 
 def anonymize_list(values: pd.Series, mapper_filename: str = "anonym_mappings.csv", generator: str = "increment", *args, **kwargs):
@@ -139,6 +139,19 @@ def gen_simple_patient_id(value, mapper_filename: str = "patient_mappings.csv"):
 def gen_simple_sample_id(value, mapper_filename: str = "sample_mappings.csv"):
     return anonymize(value, mapper_filename=mapper_filename, generator="increment", prefix="S")
 
+
+# More granular control over contents of the file, use with caution
+def persist_append_anonymization_data_item(mapper_filename, *row):
+    global anonymization_mappings
+    data_folder = TemporaryFilesDirectory(None).path
+    mapping = _get_anonymization_mapping(mapper_filename)
+    if type(mapping) != list:
+        raise Exception(f"Anonymization mappings - storage of non-existent data - probably a bug ({mapper_filename})!")
+    mapping.append(row)
+    
+    file = f"{data_folder}/{mapper_filename}"
+    with open(file, 'a', encoding='utf-8') as file:
+        print(*row, sep="\t", file=file)
 
 
 """
@@ -174,7 +187,7 @@ def increment(_, prefix: str = "", zfill: int = 5):
 def _get_anonymization_mapping(mapper_filename):
     global anonymization_mappings
     mapping = anonymization_mappings.get(mapper_filename)
-    if not mapping:
+    if type(mapping) != list:
         mapping = _load_anonymization_data(mapper_filename)
     return mapping
 
@@ -187,7 +200,7 @@ def _load_anonymization_data(mapper_filename, missing_ok=True):
     if not os.path.isfile(file):
         if not missing_ok:
             raise Exception(f"Anonymization mappings not found (reading {mapper_filename})!")
-        result = {}
+        result = []
         anonymization_mappings[mapper_filename] = result
         return result
     
@@ -203,8 +216,8 @@ def _load_anonymization_data(mapper_filename, missing_ok=True):
 def _persist_anonymization_data(mapper_filename):
     global anonymization_mappings
     data_folder = TemporaryFilesDirectory(None).path
-    mapping = anonymization_mappings.get(mapper_filename)
-    if not mapping:
+    mapping = _get_anonymization_mapping(mapper_filename)
+    if type(mapping) != list:
         raise Exception(f"Anonymization mappings - storage of non-existent data - probably a bug ({mapper_filename})!")
 
     file = f"{data_folder}/{mapper_filename}"
@@ -212,15 +225,3 @@ def _persist_anonymization_data(mapper_filename):
         for row in mapping:
             print(*row, sep="\t", file=file)
 
-
-def _persist_append_anonymization_data_item(mapper_filename, *row):
-    global anonymization_mappings
-    data_folder = TemporaryFilesDirectory(None).path
-    mapping = anonymization_mappings.get(mapper_filename)
-    if not mapping:
-        raise Exception(f"Anonymization mappings - storage of non-existent data - probably a bug ({mapper_filename})!")
-    mapping.append(row)
-    
-    file = f"{data_folder}/{mapper_filename}"
-    with open(file, 'a', encoding='utf-8') as file:
-        print(*row, sep="\t", file=file)
