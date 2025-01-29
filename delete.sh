@@ -16,17 +16,27 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
     cd $CBIO_DEPLOY_FOLDER
-    try_run "Could not delete study defined in $CBIO_STUDY_FOLDER!" \
-        $docker_compose run \
+    # First, start the container
+    docker rm -f cbioportal-container-csv2cbio 2>/dev/null  #preemptive
+    try_run "Failed to start the container!" \
+        docker compose run \
         -v "$CBIO_STUDY_FOLDER:/_to_delete_" \
-        cbioportal \
-        /core/scripts/importer/cbioportalImporter.py -c remove-study -meta "/_to_delete_/meta_study.txt"
+        -w /core/scripts \
+        -d --rm --no-deps --name cbioportal-container-csv2cbio \
+        cbioportal sleep infinity
+
+    # Then, export the portalinfo metadata
+    try_run "Failed to remove the study!" \
+        docker exec cbioportal-container-csv2cbio  /core/scripts/importer/cbioportalImporter.py -c remove-study -meta "/_to_delete_/meta_study.txt"
 
     if [ ! -z "${CBIO_STUDY_FOLDER}" ]; then
         CBIO_IMPORT_ARGS=" $CBIO_IMPORT_ARGS"
     else
         CBIO_IMPORT_ARGS=""
     fi
+
+    # Cleanup
+    docker rm -f cbioportal-container-csv2cbio
 fi
 
 
