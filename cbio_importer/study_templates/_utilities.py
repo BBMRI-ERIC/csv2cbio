@@ -24,19 +24,12 @@ def flatten_recursive(nested):
             yield item
 
 
+def get_source_csv_header(item):
+    return item["source_id"] if "source_id" in item else (item["source_ids"] if "source_ids" in item else item["id"])
+
+
 def get_defined_source_csv_headers(config):
-    return [item["source_id"] if "source_id" in item else 
-                item["source_ids"] if "source_ids" in item else 
-                    item["id"]
-            for item in config["columns"] if not "value" in item]
-
-
-def get_defined_target_csv_headers(config):
-    return [item["id"].upper() for item in config["columns"] if not "value" in item]
-
-
-def get_defined_constant_csv_headers(config):
-    return [item["id"].upper() for item in config["columns"] if "value" in item]
+    return [get_source_csv_header(item) for item in config["columns"] if not "value" in item]
 
 
 def read_opt(name, source, require=True, default=None, assert_type=None):
@@ -128,14 +121,13 @@ class CbioCSVWriter:
         if not isinstance(self.input, pd.DataFrame):
             raise SyntaxError("with_input must be called first!")
         self.config = config
-        self.source_columns_out = get_defined_target_csv_headers(config)
         # Source column IDs are [id1, id2, [id3, id4]] one-level optionally nested array, in case some query requests multiple values
+        # used to test for source data cols presence
         self.source_columns_in = get_defined_source_csv_headers(config)
-        self.constant_columns = get_defined_constant_csv_headers(config)
 
         cols = config["columns"]
         self.cols_map = {cols[i]["id"].upper(): cols[i] for i in range(len(cols))}
-        self.required_colmns = [*self.source_columns_out, *self.constant_columns]
+        self.required_colmns = [item["id"].upper() for item in config["columns"]]
 
         # New, preprocess logics
         if not self._preprocess():
@@ -209,7 +201,8 @@ class CbioCSVWriter:
         if joins:
             for join in joins:
                 file = self._option("file", source=join, assert_type=str)
-                other_input = pd.read_csv(f"{self.input_prefix}{file}", delimiter=self.input_delimiter)
+                delim = self._option("delimiter", source=join, default=self.input_delimiter, require=False)
+                other_input = pd.read_csv(f"{self.input_prefix}{file}", delimiter=delim)
                 self.input = self.input.merge(
                     other_input,
                     how=self._option("how", source=join, require=False, assert_type=str, default="inner"),
@@ -332,18 +325,12 @@ class CbioCSVWriter:
     def write_comment_descriptions(self, output):
         self._require_init()
         print("#", end='', file=output)
-        try:
-            print(*[item["description"] for item in self.config["columns"]], sep='\t', file=output)
-        except KeyError as e:
-            raise ValueError(f"Could not find 'description' property for {get_caller(2)} entries: missing key? check your study YAML!!")
+        print(*[item.get("description", item["name"]) for item in self.config["columns"]], sep='\t', file=output)
 
     def write_comment_data_types(self, output):
         self._require_init()
         print("#", end='', file=output)
-        try:
-            print(*[self._write_type(item["data_type"]) for item in self.config["columns"]], sep='\t', file=output)
-        except KeyError as e:
-            raise ValueError(f"Could not find 'data_type' property for {get_caller(2)} entries: missing key? check your study YAML!!")
+        print(*[self._write_type(item.get("data_type", "STRING")) for item in self.config["columns"]], sep='\t', file=output)
 
     def write_comment_priority(self, output):
         self._require_init()
@@ -387,6 +374,7 @@ class CbioCSVWriter:
                 if definition_path is None:
                     return None
                 import importlib
+                print(f"Importing functions definition file: {definition_path}")
                 spec = importlib.util.spec_from_file_location("cbio.functions", definition_path)
                 self.fn_module = importlib.util.module_from_spec(spec)
                 
@@ -405,7 +393,7 @@ class CbioCSVWriter:
                 
             return getattr(self.fn_module, path[0]) if len(path) > 0 else None
         except Exception as e:
-            raise ValueError(f"Invalid function provided: {fnpath.rsplit('.', maxsplit=1)}") from e
+            raise ValueError(f"Invalid function provided or syntax error in your file: {fnpath.rsplit('.', maxsplit=1)} ({FunctionDefinitionFile(None).path})") from e
         
     def _get_value(self, spec, value, na_value=""):
         """
@@ -465,19 +453,22 @@ class CbioCSVWriter:
         for col in self.guard_columns:
             require_header(self.required_colmns, col, 2)
 
-        constant_values = [self._get_constant(item) for item in self.config["columns"] if "value" in item]
-
         for index, row in self.input.iterrows():
             values = []
-            for i in range(len(self.source_columns_in)):
-                value = row[self.source_columns_in[i]]
-                out_key = self.source_columns_out[i]
-                self._test_value(out_key, value)
-                values.append(self._get_value(self.cols_map[out_key], value))
+            for item in self.config["columns"]:
+                if "value" in item:
+                    value = self._get_constant(item)
+                    key = item["id"].upper()
+                    self._test_value(key, value)
+                    values.append(self._get_value(self.cols_map[key], value))
+                else:
+                    source_header = get_source_csv_header(item)
+                    value = row[source_header]
+                    out_key = item["id"].upper()
+                    self._test_value(out_key, value)
+                    values.append(self._get_value(self.cols_map[out_key], value))
 
-            for key, value in zip(self.constant_columns, constant_values):
-                self._test_value(key, value)
-                values.append(self._get_value(self.cols_map[key], value))
+                
             print(*values, sep='\t', file=output)
 
 

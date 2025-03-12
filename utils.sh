@@ -101,6 +101,12 @@ check_poetry_install() {
     else
         echo "No Poetry environment found. Running 'poetry install'..."
         poetry install
+        echo "finished with $?"
+        if [ $? -ne 0 ]; then
+            echo "The creation failed: attempting to run poetry lock..."
+            poetry lock
+            poetry install
+        fi
     fi
 }
 

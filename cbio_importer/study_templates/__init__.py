@@ -7,6 +7,7 @@ from .patient import process as process_patient
 from .sample import process as process_sample
 from .resource import process as process_resources
 from .cancer_type import process as process_cancer_types
+from .time_series import process as process_time_series
 
 reserved_keys = []
 
@@ -21,8 +22,8 @@ def _process_item(name, fn, options, study_yaml, data_selector=None):
         print(f"{name.capitalize()} not defined - skipping.")
 
 
-# resources are arbitrary keys that contain resource child
-def _collect_resources(study_yaml):
+# generic simple item collector:
+def _collect_top_level_nodes_that_have_child(study_yaml, child_name, child_type):
     result = []
     for key in study_yaml:
         if key in reserved_keys:
@@ -30,13 +31,23 @@ def _collect_resources(study_yaml):
         item = study_yaml[key]
         if not isinstance(item, dict):
             continue
-        resource = item.get("resource", None)
-        if isinstance(resource, dict):
+        resource = item.get(child_name, None)
+        if isinstance(resource, child_type):
             resource["__key"] = key
             result.append(item)
         elif resource is not None:
-            print(f"WARN: object {key} defines resource, but the resource is not a dictionary! skipping...")
+            print(f"WARN: object {key} defines resource, but the resource is not a {child_type}! skipping...")
     return result
+
+# resources are arbitrary keys that contain resource child
+def _collect_resources(study_yaml):
+    return _collect_top_level_nodes_that_have_child(study_yaml, "resource", dict)
+
+
+# timelines are arbitrary keys that define
+def _collect_time_series(study_yaml):
+    return _collect_top_level_nodes_that_have_child(study_yaml, "series", dict)
+
 
 
 def process(target_folder, study_yaml, source_prefix=""):
@@ -61,3 +72,5 @@ def process(target_folder, study_yaml, source_prefix=""):
     _process_item("samples", fn=process_sample, options=options, study_yaml=study_yaml)
     _process_item("resources", fn=process_resources, options=options, study_yaml=study_yaml,
                   data_selector=_collect_resources)
+    _process_item("time_series", fn=process_time_series, options=options, study_yaml=study_yaml,
+                  data_selector=_collect_time_series)
