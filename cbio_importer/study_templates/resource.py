@@ -2,6 +2,10 @@ from ._utilities import write_meta_file, get_template_file_by_name, CbioCSVWrite
 
 
 def process(options, data):
+    if not data or not len(data):
+        print("No resources defined - skipping.")
+        return
+    
     # First create resource definition
     write_meta_file(get_template_file_by_name("resource.txt"), f"{options['target_folder']}/meta_resource_definition.txt",
                     options, ["study_id"])

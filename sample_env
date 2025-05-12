@@ -3,6 +3,7 @@ CBIO_CSV_PATH_PREFIX=/common/root/to/source/files  # define in study.yaml source
 CBIO_FUNCTIONS=/path/to/functions/file.py
 CBIO_STUDY_DEFINITION=${CBIO_CSV_PATH_PREFIX}/study.yaml  # the study defunition file, usually at $CBIO_CSV_PATH_PREFIX
 CBIO_OUTPUT_PATH_PREFIX=/path/where/to/output  # output path
+# CBIO_SEED_VALUE=1234  # optional, random seed for reproducibility
 
 #### IMPORTING ####
 # Path to cbioportal docker compose file parent directory

@@ -4,10 +4,11 @@ import subprocess
 import sys
 import json
 import pathlib
+import random
 
 import yaml
 
-from cbio_importer.study_templates._singletons import FunctionDefinitionFile, TemporaryFilesDirectory
+from cbio_importer.study_templates._singletons import FunctionDefinitionFile, TemporaryFilesDirectory, SeedValue
 
 
 def process_input(input_string):
@@ -33,12 +34,17 @@ def main():
                         default=os.environ.get('CBIO_OUTPUT_PATH_PREFIX', default=""))
     parser.add_argument('-m', '--meta_helper_files_directory', type=str, nargs="?", help='Where to store output helper files',
                         default=os.environ.get('CBIO_OUTPUT_META_FILES_PREFIX', default=""))
+    parser.add_argument('-s', '--seed', type=int, nargs="?", help='Seed value for (pseudo) random number generation',
+                        default=os.environ.get('CBIO_SEED_VALUE', default=10))
+    parser.add_argument('--clean-state', action='store_true', help="Erase all temporary files before processing")
     parser.add_argument('-v', '--verbose', action='store_true', help="Enable verbose output")
     
     args = parser.parse_args()
     verbose_env = os.environ.get('CBIO_VERBOSE', default=None)
     is_verbose = args.verbose or (verbose_env and verbose_env != "False" and verbose_env != "false")
     
+    SeedValue(args.seed)
+
     input_string = None
     if not sys.stdin.isatty():
         input_string = sys.stdin.read().strip()
@@ -89,7 +95,7 @@ def main():
     if os.path.exists(meta_folder_abspath): 
         if os.path.isfile(meta_folder_abspath): 
             raise Exception(f"Target path {meta_folder} is a file! We need this path to store helper files into.")
-        elif os.path.isdir(meta_folder_abspath): 
+        elif args.clean_state and os.path.isdir(meta_folder_abspath): 
             print("Cleaning contents of the folder.")
             try:
                 for item in os.listdir(meta_folder_abspath):

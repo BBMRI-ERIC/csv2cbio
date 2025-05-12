@@ -68,9 +68,12 @@ def process(target_folder, study_yaml, source_prefix=""):
         "study_id": study_yaml["study_id"]
     }
     _process_item("cancer_types", fn=process_cancer_types, options=options, study_yaml=study_yaml)
-    _process_item("patients", fn=process_patient, options=options, study_yaml=study_yaml)
-    _process_item("samples", fn=process_sample, options=options, study_yaml=study_yaml)
+    
     _process_item("resources", fn=process_resources, options=options, study_yaml=study_yaml,
                   data_selector=_collect_resources)
     _process_item("time_series", fn=process_time_series, options=options, study_yaml=study_yaml,
                   data_selector=_collect_time_series)
+    # Process samples and patients as last since they contain usually the most data and take more time
+    _process_item("samples", fn=process_sample, options=options, study_yaml=study_yaml)
+    _process_item("patients", fn=process_patient, options=options, study_yaml=study_yaml)
+

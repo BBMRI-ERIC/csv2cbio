@@ -2,6 +2,10 @@ from ._utilities import write_meta_file, get_template_file_by_name, read_opt, pi
 
 
 def process(options, data):
+    if not data or not len(data):
+        print("No cancer types defined - skipping.")
+        return
+    
     write_meta_file(get_template_file_by_name("cancer_type.txt"), f"{options['target_folder']}/meta_cancer_type.txt", {})
 
     # First create all resource definitions

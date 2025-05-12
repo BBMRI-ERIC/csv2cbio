@@ -4,10 +4,11 @@ import os
 import csv
 # Keep imported!
 import uuid
+import random
+from string import digits
 
 # Do not use relative imports here, since it is being dynamically imported!
 from cbio_importer.study_templates._singletons import TemporaryFilesDirectory
-
 
 """
 Single Value Transformers
@@ -22,6 +23,8 @@ def template_string(value: str, string: str = "{value}", template_dict: dict = {
     :param template_dict: additional values to substitute in the string if desired
     :return:
     """
+    if pd.isna(value):
+        return None
     template_dict["value"] = value
     return string.format(**template_dict)
 
@@ -33,6 +36,8 @@ def os_status_alive_deceased(value: str, compare: str = "alive"):
     :param compare: compare the value axainst this value (lowercase), if it euquals
     :return: cbioportal-comparible syntax
     """
+    if pd.isna(value):
+        return None
     return "0:LIVING" if value.lower() == compare else "1:DECEASED"
 
 
@@ -109,6 +114,7 @@ def anonymize(value, mapper_filename: str = "anonym_mappings.csv", generator: st
                     "prefix" to add custom prefix at the beginning of the number
                     NOTE: order of numbers will LEAK the order in which data comes, 100% safe only if rows are ordered
                     randomly
+        "random_simple_id"
         "uuid.uuid4" use random UUIDs, no additional values necessary
         "uuid.uuid5" need to set kwarg "namespace", an uuid value
 
@@ -132,12 +138,12 @@ def anonymize_list(values: pd.Series, mapper_filename: str = "anonym_mappings.cs
     return anonymize(values.str.cat(sep='~'), mapper_filename=mapper_filename, generator=generator, *args, **kwargs)
 
 
-def gen_simple_patient_id(value, mapper_filename: str = "patient_mappings.csv"):
-    return anonymize(value, mapper_filename=mapper_filename, generator="increment", prefix="P")
+def gen_simple_patient_id(value, mapper_filename: str = "patient_mappings.csv", generator: str = "increment"):
+    return anonymize(value, mapper_filename=mapper_filename, generator=generator, prefix="P")
 
 
-def gen_simple_sample_id(value, mapper_filename: str = "sample_mappings.csv"):
-    return anonymize(value, mapper_filename=mapper_filename, generator="increment", prefix="S")
+def gen_simple_sample_id(value, mapper_filename: str = "sample_mappings.csv", generator: str = "increment"):
+    return anonymize(value, mapper_filename=mapper_filename, generator=generator, prefix="S")
 
 
 # More granular control over contents of the file, use with caution
@@ -152,6 +158,15 @@ def persist_append_anonymization_data_item(mapper_filename, *row):
     file = f"{data_folder}/{mapper_filename}"
     with open(file, 'a', encoding='utf-8') as file:
         print(*row, sep="\t", file=file)
+
+
+def set_seed(value: str):
+    """
+    Set the seed for random number generation. Called automatically by the library.
+    :param value: seed
+    :return: None
+    """
+    random.seed(value)
 
 
 """
@@ -182,6 +197,12 @@ def increment(_, prefix: str = "", zfill: int = 5):
     global id_dealer
     id_dealer = id_dealer + 1
     return prefix + str(id_dealer).zfill(zfill)
+
+
+def random_simple_id(_, prefix: str = "", zfill: int = 5):
+    # zfill drives how many digits we require
+    id_value = ''.join(random.choice(digits) for i in range(zfill))
+    return prefix + str(id_value).zfill(zfill)
 
 
 def _get_anonymization_mapping(mapper_filename):

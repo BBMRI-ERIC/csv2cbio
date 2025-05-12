@@ -39,4 +39,10 @@ class AbsPath:
         self.path = value
 
 
+@singleton
+class SeedValue:
+    def __init__(self, value):
+        self.value = value
+
+
 AbsPath(pathlib.Path(__file__).parent.parent.absolute().as_posix() + "/")

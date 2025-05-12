@@ -2,6 +2,11 @@ from ._utilities import write_meta_file, get_template_file_by_name, CbioCSVWrite
 
 
 def process(options, data):
+    
+    if not data or not len(data):
+        print("No patients defined - skipping.")
+        return
+    
     write_meta_file(get_template_file_by_name("patient.txt"), f"{options['target_folder']}/meta_clinical_patient.txt",
                     options, ["study_id"])
     

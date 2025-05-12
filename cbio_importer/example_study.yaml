@@ -51,6 +51,24 @@ samples:
 # SERUM_PSA
 # DRIVER_MUTATIONS
 
+
+# Depending on the resource type, some columns are required:
+# For SAMPLE: ["PATIENT_ID", "SAMPLE_ID", "RESOURCE_ID", "URL"]
+# For PATIENT: ["PATIENT_ID", "RESOURCE_ID", "URL"] ... and so on.
+# Required columns are by default trated as mandatory, but you can
+# override this by setting the property 'required: false' in the column definition:
+samples:
+  columns:
+    - id: sample_year
+      name: Sample Year
+      source_id: sample_year
+      description: Year when the sample was collected
+      data_type: NUMBER
+      required: false
+
+
+# Resources
+
 # Resource use arbitrary, non-reserved keys.
 my_custom_resource:
     file: "path/to/file"
@@ -123,7 +141,9 @@ patients:
       #or: operator: 
       #  arg: x
       #  command: "<" "<=" "==" "=>" ">" "!=" # applies the operator such that [value] <command> x
-# If you need to use function, you can also use function and source_id or source_ids (list of IDs).
+      # If you need to use function, you can also use function and source_id or source_ids (list of IDs).
+      #or: function:
+      #      name: ...
 
 
 # If you need to create new columns, you can do:
